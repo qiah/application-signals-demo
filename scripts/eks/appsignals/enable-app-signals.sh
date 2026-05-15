@@ -49,69 +49,85 @@ eksctl create iamserviceaccount \
 check_if_step_failed_and_exit "There was an error creating the ServiceAccount, exiting"
 
 
-# Install amazon-cloudwatch-observability addon
-echo "Checking amazon-cloudwatch-observability add-on"    
-result=$(aws eks describe-addon --addon-name amazon-cloudwatch-observability --cluster-name ${CLUSTER_NAME} --region ${REGION} 2>&1)
-echo "${result}"
-
-if [[ "${result}" == *"No addon: "* ]];  then
-    echo "Installing amazon-cloudwatch-observability add-on"
-    aws eks create-addon \
-        --cluster-name ${CLUSTER_NAME} \
-        --addon-name amazon-cloudwatch-observability \
-        --region ${REGION}
-    # wait until the amazon-cloudwatch-observability add-on is active    
-    # Fetch the initial status
-    status=$(aws eks describe-addon --cluster-name ${CLUSTER_NAME} --addon-name amazon-cloudwatch-observability --region ${REGION} | grep '"status":' | awk -F '"' '{print $4}')
-
-    # Loop until status becomes "ACTIVE"
-    while [[ "$status" != "ACTIVE" ]]; do
-      echo "Current status: $status"
-      if [[ "$status" == "CREATE_FAILED" ]]; then
-        echo "Create amazon-cloudwatch-observability add-on failed!"
-        exit 1
-      fi 
-      echo "Waiting for addon to become ACTIVE..."
-      sleep 20  # wait for 20 seconds before checking again
-      status=$(aws eks describe-addon --cluster-name ${CLUSTER_NAME} --addon-name amazon-cloudwatch-observability --region ${REGION} | grep '"status":' | awk -F '"' '{print $4}')
-    done
-
-    echo "EKS amazon-cloudwatch-observability add-on is now ACTIVE"
+# Install amazon-cloudwatch-observability addon.
+# If HELM_CHART_REF is set, install from the helm chart source instead of the EKS add-on.
+# This allows testing unreleased add-on versions. See install-addon-via-helm.sh for details.
+if [ -n "${HELM_CHART_REF}" ]; then
+    export REGION CLUSTER_NAME
+    bash "$(dirname "$0")/install-addon-via-helm.sh"
+    check_if_step_failed_and_exit "Helm-based install failed, exiting"
 else
-  addon_version=$(echo "${result}" | grep "addonVersion" | awk -F '"' '{print $4}')
-  if [[ "$addon_version" < "v1.4.0" ]]; then
-     read -p "Do you want to update the add-on version to v1.2.0, current version $addon_version? (yes/no): " choice
+    echo "Checking amazon-cloudwatch-observability add-on"    
+    result=$(aws eks describe-addon --addon-name amazon-cloudwatch-observability --cluster-name ${CLUSTER_NAME} --region ${REGION} 2>&1)
+    echo "${result}"
 
-      if [ "$choice" == "yes" ]; then
-        aws eks update-addon \
-           --cluster-name ${CLUSTER_NAME} \
-           --addon-name amazon-cloudwatch-observability \
-           --addon-version v1.4.0-eksbuild.1 \
-           --region ${REGION}
-        # wait until the amazon-cloudwatch-observability add-on is active
-        echo "Waiting for addon to become ACTIVE..."
-        sleep 5
+    if [[ "${result}" == *"No addon: "* ]];  then
+        echo "Installing amazon-cloudwatch-observability add-on"
+
+        ADDON_VERSION_ARG=""
+        if [ -n "${ADDON_VERSION}" ]; then
+            ADDON_VERSION_ARG="--addon-version ${ADDON_VERSION}"
+            echo "Using specific add-on version: ${ADDON_VERSION}"
+        fi
+
+        aws eks create-addon \
+            --cluster-name ${CLUSTER_NAME} \
+            --addon-name amazon-cloudwatch-observability \
+            --region ${REGION} \
+            ${ADDON_VERSION_ARG}
+        # wait until the amazon-cloudwatch-observability add-on is active    
+        # Fetch the initial status
         status=$(aws eks describe-addon --cluster-name ${CLUSTER_NAME} --addon-name amazon-cloudwatch-observability --region ${REGION} | grep '"status":' | awk -F '"' '{print $4}')
-        
+
         # Loop until status becomes "ACTIVE"
         while [[ "$status" != "ACTIVE" ]]; do
           echo "Current status: $status"
-          if [[ "$status" == "UPDATE_FAILED" ]]; then
-            echo "Update amazon-cloudwatch-observability add-on failed!"
+          if [[ "$status" == "CREATE_FAILED" ]]; then
+            echo "Create amazon-cloudwatch-observability add-on failed!"
             exit 1
-          fi
+          fi 
           echo "Waiting for addon to become ACTIVE..."
           sleep 20  # wait for 20 seconds before checking again
           status=$(aws eks describe-addon --cluster-name ${CLUSTER_NAME} --addon-name amazon-cloudwatch-observability --region ${REGION} | grep '"status":' | awk -F '"' '{print $4}')
         done
 
         echo "EKS amazon-cloudwatch-observability add-on is now ACTIVE"
+    else
+      addon_version=$(echo "${result}" | grep "addonVersion" | awk -F '"' '{print $4}')
+      if [[ "$addon_version" < "v1.4.0" ]]; then
+         read -p "Do you want to update the add-on version to v1.4.0, current version $addon_version? (yes/no): " choice
+
+          if [ "$choice" == "yes" ]; then
+            aws eks update-addon \
+               --cluster-name ${CLUSTER_NAME} \
+               --addon-name amazon-cloudwatch-observability \
+               --addon-version v1.4.0-eksbuild.1 \
+               --region ${REGION}
+            # wait until the amazon-cloudwatch-observability add-on is active
+            echo "Waiting for addon to become ACTIVE..."
+            sleep 5
+            status=$(aws eks describe-addon --cluster-name ${CLUSTER_NAME} --addon-name amazon-cloudwatch-observability --region ${REGION} | grep '"status":' | awk -F '"' '{print $4}')
+            
+            # Loop until status becomes "ACTIVE"
+            while [[ "$status" != "ACTIVE" ]]; do
+              echo "Current status: $status"
+              if [[ "$status" == "UPDATE_FAILED" ]]; then
+                echo "Update amazon-cloudwatch-observability add-on failed!"
+                exit 1
+              fi
+              echo "Waiting for addon to become ACTIVE..."
+              sleep 20  # wait for 20 seconds before checking again
+              status=$(aws eks describe-addon --cluster-name ${CLUSTER_NAME} --addon-name amazon-cloudwatch-observability --region ${REGION} | grep '"status":' | awk -F '"' '{print $4}')
+            done
+
+            echo "EKS amazon-cloudwatch-observability add-on is now ACTIVE"
+          else
+           echo "Aborted upgrading EKS amazon-cloudwatch-observability add-on."
+          fi
       else
-       echo "Aborted upgrading EKS amazon-cloudwatch-observability add-on."
+        echo "EKS amazon-cloudwatch-observability add-on has been installed"
       fi
-  else
-    echo "EKS amazon-cloudwatch-observability add-on has been installed"
-  fi
+    fi
 fi
 
 if [ -z "${REGION}" ]
