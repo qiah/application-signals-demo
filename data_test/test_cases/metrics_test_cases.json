@@ -1,27 +1,8 @@
 {
   "metric_test_cases": [
     {
-      "test_case_id": "lambda_integration_SLO_metric_availability_check",
-      "description": "Verify SLO metric availability for appointment service availability SLO (Scenario 1)",
-      "test_scenario": "Scenario 1",
-      "metric_namespace": "AWS/ApplicationSignals",
-      "metric_name": "AttainmentRate",
-      "statistic": "Sum",
-      "dimensions": [
-        {"Name": "SloName", "Value": "appointment service availability"}
-      ],
-      "evaluation_period_minutes": 180,
-      "threshold": {
-        "comparison_operator": [{
-          "operator": "GreaterThanOrEqualToThreshold",
-          "threshold_value": 0
-        }]
-      },
-      "notes": "Corresponds to PDF scenario 1"
-    },
-    {
       "test_case_id": "lambda_integration_service_operation_metric_availability_check",
-      "description": "Verify SLO metric availability for appointment service availability SLO (Scenario 1)",
+      "description": "Verify Fault metric availability for the appointment service (Scenario 1)",
       "test_scenario": "Scenario 1",
       "metric_namespace": "ApplicationSignals",
       "metric_name": "Fault",
@@ -262,27 +243,6 @@
       "notes": "Corresponds to PDF scenario 6"
     },
     {
-      "test_case_id": "container_insights_integration_slo_metric_availability_check",
-      "description": "Verify container metrics integration (Scenario 7)",
-      "test_scenario": "Scenario 7",
-      "metric_namespace": "AWS/ApplicationSignals",
-      "metric_name": "AttainmentRate",
-      "statistic": "Average",
-      "dimensions": [
-        {"Name": "SloName", "Value": "Latency for Registering an Owner"}
-      ],
-      "evaluation_period_minutes": 60,
-      "threshold": {
-        "comparison_operator": [{
-          "operator": "GreaterThanThreshold",
-          "threshold_value": 0
-        }
-      ]
-      },
-      "cli_command_hint": "aws cloudwatch get-metric-data ...",
-      "notes": "Corresponds to PDF scenario 7"
-    },
-    {
       "test_case_id": "container_insights_integration_latency_service_metric_availability_check",
       "description": "Verify Service latency metric availability for container insights (Scenario 7)",
       "test_scenario": "Scenario 7",
@@ -369,25 +329,6 @@
         }]
       },
       "notes": "Corresponds to PDF scenario 11"
-    },
-    {
-      "test_case_id": "exclude_time_windows_metric_availability_check",
-      "description": "Verify SLO Exclude Time Windows (Scenario 12)",
-      "test_scenario": "Scenario 12",
-      "metric_namespace": "AWS/ApplicationSignals",
-      "metric_name": "BreachedCount",
-      "statistic": "Sum",
-      "dimensions": [
-        {"Name": "SloName", "Value": "Availability for Retrieving Payments"}
-      ],
-      "evaluation_period_minutes": 180,
-      "threshold": {
-        "comparison_operator": [{
-          "operator": "GreaterThanOrEqualToThreshold",
-          "threshold_value": 0
-        }]
-      },
-      "notes": "Corresponds to PDF scenario 12"
     }
   ]
 }

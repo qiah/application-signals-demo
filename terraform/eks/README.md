@@ -51,13 +51,12 @@ Note that this guide is outdated.
 
    ```
 
-5. Create Canaries and SLOs
+5. Create Canaries
 
    ``` shell
    endpoint="http://$(kubectl get ingress -o json  --output jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')"
    cd scripts/eks/appsignals/
    ./create-canaries.sh $AWS_REGION create $endpoint
-   ./create-slo.sh $TF_VAR_cluster_name $AWS_REGION
    ```
 
 6. Visit Application
@@ -70,13 +69,11 @@ Note that this guide is outdated.
 
 7. Cleanup
 
-   Delete ALB ingress, SLOs and Canaries before destroy terraform stack.
+   Delete ALB ingress and Canaries before destroy terraform stack.
 
    ``` shell
 
    kubectl delete -f ./scripts/eks/appsignals/sample-app/alb-ingress/petclinic-ingress.yaml
-
-   ./cleanup-slo.sh $REGION
 
    ./create-canaries.sh $REGION delete
 

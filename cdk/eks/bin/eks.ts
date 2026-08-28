@@ -4,7 +4,6 @@ import { App } from 'aws-cdk-lib';
 import { NetworkStack } from '../lib/stacks/network-stack';
 import { IAMStack } from '../lib/stacks/iam-stack';
 import { EksStack } from '../lib/stacks/eks-stack';
-import { SloStack } from '../lib/stacks/slo-stack';
 import { RdsStack } from '../lib/stacks/rds-stack';
 import { SyntheticCanaryStack } from '../lib/stacks/canary-stack';
 import { MyApplicationStack } from "../lib/stacks/my-application-stack";
@@ -14,8 +13,6 @@ import { GuardrailStack } from "../lib/stacks/guardrail-stack";
 import { ResourceExplorerStack } from "../lib/stacks/resource-explorer-stack";
 
 const app = new App();
-
-const enableSlo = app.node.tryGetContext('enableSlo') || false;
 
 const networkStack = new NetworkStack(app, 'AppSignalsEksNetworkStack');
 const iamStack = new IAMStack(app, 'AppSignalsEksIamStack');
@@ -72,15 +69,3 @@ const syntheticCanaryStack = new SyntheticCanaryStack(app, 'AppSignalsSyntheticC
 
 syntheticCanaryStack.addDependency(rdsStack);
 syntheticCanaryStack.addDependency(rumStack);
-
-// After AppSignal is enabled, it takes up to 10 minutes for the SLO metrics to become available. If this is deployed before the SLO metrics
-// are available, it will fail.
-if (enableSlo) {
-  const sloStack = new SloStack(app, 'AppSignalsSloStack', {
-    eksClusterName: eksStack.CLUSTER_NAME,
-    sampleAppNamespace: eksStack.SAMPLE_APP_NAMESPACE,
-    awsApplicationTag: myApplicationStack.application.attrApplicationTagValue
-  })
-
-  sloStack.addDependency(syntheticCanaryStack);
-}

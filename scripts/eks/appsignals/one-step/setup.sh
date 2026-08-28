@@ -54,10 +54,6 @@ check_if_step_failed_and_exit "There was an error deploying the traffic generato
 ../create-canaries.sh $REGION
 check_if_step_failed_and_exit "There was an error creating the canaries, exiting"
 
-# create slo
-../create-slo.sh $CLUSTER_NAME $REGION
-check_if_step_failed_and_exit "There was an error creating the SLOs, exiting"
-
 # Check if the current context points to the new cluster in the correct region
 kub_config=$(kubectl config current-context)
 if [[ $kub_config != *"$CLUSTER_NAME"* ]] || [[ $kub_config != *"$REGION"* ]]; then

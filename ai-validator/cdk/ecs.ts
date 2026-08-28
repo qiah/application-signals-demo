@@ -69,18 +69,14 @@ export class AIValidatorStack extends cdk.Stack {
     );
 
     const testFiles = [
-      "test-1.script.md",
-      "test-2.script.md",
       "test-3.script.md",
       "test-4.script.md",
       // "test-5.script.md",
       "test-6.script.md",
-      "test-7.script.md",
       "test-8.script.md",
       // "test-9.script.md",
       "test-10.script.md",
       "test-11.script.md",
-      // "test-12.script.md",
       "test-13-audit-lambda.script.md",
       "test-13-customers-service-java-1.script.md",
       "test-13-customers-service-java-2.script.md",

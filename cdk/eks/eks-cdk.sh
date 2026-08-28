@@ -38,7 +38,7 @@ if [[ "$ACTION" == "synth" || "$ACTION" == "deploy" ]]; then
 
   rm -rf cdk.out
   echo "Running CDK synth for all stacks..."
-  if cdk synth --context enableSlo=True ; then
+  if cdk synth; then
     echo "CDK synth successful!"
     if [[ "$ACTION" == "synth" ]]; then
       exit 0
@@ -51,7 +51,7 @@ fi
 
 # Deploy or destroy all stacks in the app
 if [[ "$ACTION" == "deploy" ]]; then
-  # The SLO stack requires metrics from lambda pet clinic.
+  # Deploy the lambda based parts of the demo first.
   cd ../../lambda-petclinic/cdk
   if ./deploy.sh; then
     echo "Lambda pet clinic was deployed successfully"
@@ -71,24 +71,8 @@ if [[ "$ACTION" == "deploy" ]]; then
   cd ../../cdk/eks
 
   echo "Starting CDK deployment for all stacks in the app"
-  # Deploy the EKS cluster with the sample app first
   if cdk deploy --all --require-approval never; then
     echo "Deployment successful for sample app in EKS Cluster"
-
-    # Once the sample app is deployed, it will take up to 10 minutes for SLO metrics to appear
-    sleep 600
-    if cdk deploy --context enableSlo=True --all --require-approval never; then
-      echo "Synthetic canary and SLO was deployed successfully"
-    else
-      echo "Synthetic canary and SLO failed to deploy"
-      if [[ "$DESTROY_ON_FAIL" == "true" ]]; then
-        echo "DESTROY_ON_FAIL is set to true, destroying all stacks..."
-        cdk destroy --context enableSlo=True --all --force --verbose
-      else
-        echo "DESTROY_ON_FAIL is set to false, keeping existing stacks for debugging..."
-      fi
-      exit 1
-    fi
   else
     echo "Deployment failed."
     if [[ "$DESTROY_ON_FAIL" == "true" ]]; then
@@ -101,7 +85,7 @@ if [[ "$ACTION" == "deploy" ]]; then
   fi
 elif [[ "$ACTION" == "destroy" ]]; then
   echo "Starting CDK destroy for all stacks in the eks app"
-  cdk destroy  --context enableSlo=True --all --force --verbose
+  cdk destroy --all --force --verbose
   echo "Destroy complete for all stacks in the eks app"
   echo "Starting CDK destroy for all stacks in the lambda app"
   cd ../../lambda-petclinic/cdk

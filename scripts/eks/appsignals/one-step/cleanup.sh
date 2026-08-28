@@ -38,9 +38,6 @@ check_if_step_failed() {
   fi
 }
 
-echo "Deleting SLO"
-../cleanup-slo.sh $REGION
-check_if_step_failed_and_exit "There was an error deleting the SLOs. Please make sure they are deleted properly before proceeding with the following steps"
 
 echo "Deleting canaries"
 ../create-canaries.sh $REGION delete
