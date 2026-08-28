@@ -20,9 +20,6 @@ spec:
         kompose.version: 1.27.0 (b0ed6a2c9)
       labels:
         io.kompose.service: vets-service-java
-      annotations:
-        sidecar.opentelemetry.io/inject-java: "true"
-        instrumentation.opentelemetry.io/inject-java: "true"
     spec:
       serviceAccountName: visits-service-account
       containers:
@@ -33,11 +30,6 @@ spec:
             - --
             - java
             - org.springframework.boot.loader.JarLauncher
-          env:
-            - name: OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
-              value: "http://otel-collector.default.svc.cluster.local:4317"
-            - name: OTEL_EXPORTER_OTLP_TRACES_PROTOCOL
-              value: "grpc"
           image: 111122223333.dkr.ecr.us-west-2.amazonaws.com/springcommunity/spring-petclinic-vets-service:latest
           securityContext:
             runAsNonRoot: true

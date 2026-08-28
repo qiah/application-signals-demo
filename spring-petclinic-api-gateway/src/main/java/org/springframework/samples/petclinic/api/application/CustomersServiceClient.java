@@ -19,13 +19,9 @@
 package org.springframework.samples.petclinic.api.application;
 
 import lombok.extern.slf4j.Slf4j;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.instrumentation.annotations.SpanAttribute;
-import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.api.dto.*;
-import org.springframework.samples.petclinic.api.utils.WellKnownAttributes;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.server.ResponseStatusException;
@@ -47,9 +43,7 @@ public class CustomersServiceClient {
         return fluxQuery(OwnerDetails.class, "customers-service", "/owners");
     }
 
-    @WithSpan
-    public Mono<OwnerDetails> getOwner(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<OwnerDetails> getOwner(final int ownerId) {
         return webClientBuilder.build().get()
             .uri("http://customers-service/owners/{ownerId}", ownerId)
             .retrieve()
@@ -59,9 +53,7 @@ public class CustomersServiceClient {
             .bodyToMono(OwnerDetails.class);
     }
 
-//    @WithSpan
-    public Mono<Void> updateOwner(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, final OwnerRequest ownerRequest) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<Void> updateOwner(final int ownerId, final OwnerRequest ownerRequest) {
         return webClientBuilder.build().put()
             .uri("http://customers-service/owners/{ownerId}", ownerId)
             .body(Mono.just(ownerRequest), OwnerRequest.class)
@@ -69,9 +61,7 @@ public class CustomersServiceClient {
             .bodyToMono(Void.class);
     }
 
-    @WithSpan
-    public Mono<Void> addOwner(@SpanAttribute(WellKnownAttributes.OWNER_ID) final OwnerRequest ownerRequest) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<Void> addOwner(final OwnerRequest ownerRequest) {
         return webClientBuilder.build().post()
             .uri("http://customers-service/owners")
             .body(Mono.just(ownerRequest), OwnerRequest.class)
@@ -83,27 +73,21 @@ public class CustomersServiceClient {
         return fluxQuery(PetType.class, "customers-service", "/petTypes");
     }
 
-    @WithSpan
-    public Mono<PetFull> getPet(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, @SpanAttribute(WellKnownAttributes.PET_ID) final int petId) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<PetFull> getPet(final int ownerId, final int petId) {
         return webClientBuilder.build().get()
             .uri("http://customers-service/owners/{ownerId}/pets/{petId}", ownerId, petId)
             .retrieve()
             .bodyToMono(PetFull.class);
     }
 
-    @WithSpan
-    public Mono<Void> diagnosePet(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, @SpanAttribute(WellKnownAttributes.PET_ID) final int petId) {
+    public Mono<Void> diagnosePet(final int ownerId, final int petId) {
         log.info("DEBUG: Inside the diagnose API");
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
         return webClientBuilder.build().get()
                 .uri("http://customers-service/diagnose/owners/{ownerId}/pets/{petId}", ownerId, petId)
                 .retrieve()
                 .bodyToMono(Void.class);
     }
-    @WithSpan
-    public Mono<Void> updatePet(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, @SpanAttribute(WellKnownAttributes.PET_ID) final int petId, final PetRequest petRequest) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<Void> updatePet(final int ownerId, final int petId, final PetRequest petRequest) {
         return webClientBuilder.build().put()
             .uri("http://customers-service/owners/{ownerId}/pets/{petId}", ownerId, petId)
             .body(Mono.just(petRequest), PetRequest.class)
@@ -111,9 +95,7 @@ public class CustomersServiceClient {
             .bodyToMono(Void.class);
     }
 
-    @WithSpan
-    public Mono<PetFull> addPet(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, @SpanAttribute(WellKnownAttributes.PET_ID) final PetRequest petRequest) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<PetFull> addPet(final int ownerId, final PetRequest petRequest) {
         return webClientBuilder.build().post()
             .uri("http://customers-service/owners/{ownerId}/pets", ownerId)
             .body(Mono.just(petRequest), PetRequest.class)
@@ -121,12 +103,10 @@ public class CustomersServiceClient {
             .bodyToMono(PetFull.class);
     }
 
-    @WithSpan
     private <T> Flux<T> fluxQuery(Class<T> clazz,
-                                  @SpanAttribute(WellKnownAttributes.REMOTE_APPLICATION) String host,
-                                  @SpanAttribute(WellKnownAttributes.REMOTE_OPERATION) String path,
+                                  String host,
+                                  String path,
                                   Object... params) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
         return webClientBuilder.build().get().uri(String.format("http://%s%s", host, path), params).retrieve().bodyToFlux(clazz);
     }
 }

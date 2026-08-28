@@ -5,7 +5,6 @@ from django.utils import timezone
 from django.core.cache import cache
 from .models import Billing,CheckList
 from .serializers import BillingSerializer
-from opentelemetry import trace
 import logging
 import boto3
 import datetime
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 class BillingViewSet(viewsets.ViewSet):
     def list(self, request):
         logger.info("BillingViewSet.list() called - Fetching billing records")
-        span = trace.get_current_span()
 
         # Read all three limits from environment (or use defaults)
         small_limit = int(os.getenv("SMALL_NAME_LIMIT", 100))      # default 100
@@ -57,17 +55,12 @@ class BillingViewSet(viewsets.ViewSet):
         db_duration_ms = (time.time() - db_start) * 1_000
         record_count = len(objs)
         logger.info(f"Database query completed - Records: {record_count}, Duration: {db_duration_ms:.2f}ms")
-        
-        span.set_attribute("db.subquery_limit", subquery_limit)
-        span.set_attribute("db.record_count", record_count)
-        span.set_attribute("db.fetch_time_ms", db_duration_ms)
 
         # measure serialization
         ser_start = time.time()
         serializer = BillingSerializer(objs, many=True)
         ser_duration_ms = (time.time() - ser_start) * 1_000
         logger.debug(f"Serialization completed - Duration: {ser_duration_ms:.2f}ms")
-        span.set_attribute("serialization.time_ms", ser_duration_ms)
 
         logger.info(f"BillingViewSet.list() completed successfully - Returned {record_count} records")
         return Response(serializer.data)
@@ -158,12 +151,7 @@ class BillingViewSet(viewsets.ViewSet):
 
 class SummaryViewSet(viewsets.ViewSet):
     def list(self, request, pk=None):
-        span = trace.get_current_span()
-        
-        # Always set request counter to 1
-        span.set_attribute("billing_summary_request", 1)
-
-         # Set num_summaries based on current minute
+        # Set num_summaries based on current minute
         current_minute = timezone.now().minute
         num_summaries = 50 if current_minute % 5 == 0 else 2
         
@@ -173,9 +161,7 @@ class SummaryViewSet(viewsets.ViewSet):
         
         if summary is None:
             # Cache miss
-            span.set_attribute("billing_summary_cache_hit", 0)
-            
-            # Sleep to simulate high latency when there's a cache miss 
+            # Sleep to simulate high latency when there's a cache miss
             time.sleep(2)
             
             billings = Billing.objects.all()
@@ -187,10 +173,7 @@ class SummaryViewSet(viewsets.ViewSet):
             }
             
             cache.set(cache_key, summary, 300)  # Cache for 5 minutes
-        else:
-            # Cache hit
-            span.set_attribute("billing_summary_cache_hit", 1)
-        
+
         return Response(summary)
 
 

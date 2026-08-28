@@ -23,11 +23,6 @@ export class IAMStack extends cdk.Stack {
       ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore')
     );
 
-    // Allow the CloudWatch agent to send logs and metrics
-    this.ec2InstanceRole.addManagedPolicy(
-      ManagedPolicy.fromAwsManagedPolicyName('CloudWatchAgentServerPolicy')
-    );
-
     this.ec2InstanceRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonSQSFullAccess')
     );

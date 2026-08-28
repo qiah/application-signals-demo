@@ -1,7 +1,5 @@
-import * as assert from 'assert';
 import { App } from 'aws-cdk-lib';
 
-import { getLatestAdotJavaTag, getLatestAdotPythonTag } from './utils';
 import { EcsClusterStack } from './stacks/ecsStack';
 import { IamRolesStack } from './stacks/iamRolesStack';
 import { PetClinicNetworkStack } from './stacks/petClinicNetworkStack';
@@ -18,15 +16,7 @@ class ApplicationSignalsECSDemo {
         this.runApp();
     }
 
-    public async runApp(): Promise<void> {
-        const [adotJavaImageTag, adotPythonImageTag] = await Promise.all([
-            getLatestAdotJavaTag(),
-            getLatestAdotPythonTag(),
-        ]);
-
-        assert(adotJavaImageTag !== '', 'ADOT Java Image Tag is empty');
-        assert(adotPythonImageTag !== '', 'ADOT Python Image Tag is empty');
-
+    public runApp(): void {
         const petClinicNetworkStack = new PetClinicNetworkStack(this.app, 'PetClinicNetworkStack');
 
         const logStack = new LogStack(this.app, 'LogStack');
@@ -58,8 +48,6 @@ class ApplicationSignalsECSDemo {
             ecsTaskExecutionRole: iamRolesStack.ecsTaskExecutionRole,
             serviceDiscoveryStack: serviceDiscoveryStack,
             logStack: logStack,
-            adotPythonImageTag: adotPythonImageTag,
-            adotJavaImageTag: adotJavaImageTag,
             dbSecret: rdsDatabaseStack.dbSecret,
             dbInstanceEndpointAddress: rdsDatabaseStack.rdsInstance.dbInstanceEndpointAddress,
             loadBalancerTargetGroup: loadbalancerStack.targetGroup,

@@ -36,7 +36,6 @@ if (createAlarms) {
     metricsTestCasesPath: path.join(baseDir, testCasesPath, 'metrics_test_cases.json'),
     tracesTestCasesPath: path.join(baseDir, testCasesPath, 'traces_test_cases.json'),
     cloudtrailTestCasesPath: path.join(baseDir, testCasesPath, 'cloudtrail_test_cases.json'),
-    otelResourceAttributesTestCasesPath: path.join(baseDir, testCasesPath, 'otel_resource_attributes_test_cases.json'),
     tagsTestCasesPath: path.join(baseDir, testCasesPath, 'grouping_tag_test_cases.json'),
     env: {
       account: account,

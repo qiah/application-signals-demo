@@ -50,12 +50,6 @@
     <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
   </dependency>
 
-  <!-- open telemetry -->
-  <dependency>
-    <groupId>io.opentelemetry.instrumentation</groupId>
-    <artifactId>opentelemetry-instrumentation-annotations</artifactId>
-    <version>1.22.1</version>
-  </dependency>
 
   <!-- AWS SDK -->
   <!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-bom -->

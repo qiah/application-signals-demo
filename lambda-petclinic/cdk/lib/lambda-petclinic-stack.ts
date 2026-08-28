@@ -36,54 +36,7 @@ export class LambdaPetClinicStack extends cdk.Stack {
       effect: iam.Effect.ALLOW,
     }));
 
-    // OpenTelemetry Layer ARNs by region
-    const layerArns: { [key: string]: string } = {
-      'af-south-1': 'arn:aws:lambda:af-south-1:904233096616:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-east-1': 'arn:aws:lambda:ap-east-1:888577020596:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-northeast-1': 'arn:aws:lambda:ap-northeast-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-northeast-2': 'arn:aws:lambda:ap-northeast-2:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-northeast-3': 'arn:aws:lambda:ap-northeast-3:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-south-1': 'arn:aws:lambda:ap-south-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-south-2': 'arn:aws:lambda:ap-south-2:796973505492:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-southeast-1': 'arn:aws:lambda:ap-southeast-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-southeast-2': 'arn:aws:lambda:ap-southeast-2:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-southeast-3': 'arn:aws:lambda:ap-southeast-3:039612877180:layer:AWSOpenTelemetryDistroPython:5',
-      'ap-southeast-4': 'arn:aws:lambda:ap-southeast-4:713881805771:layer:AWSOpenTelemetryDistroPython:5',
-      'ca-central-1': 'arn:aws:lambda:ca-central-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-central-1': 'arn:aws:lambda:eu-central-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-central-2': 'arn:aws:lambda:eu-central-2:156041407956:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-north-1': 'arn:aws:lambda:eu-north-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-south-1': 'arn:aws:lambda:eu-south-1:257394471194:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-south-2': 'arn:aws:lambda:eu-south-2:490004653786:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-west-1': 'arn:aws:lambda:eu-west-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-west-2': 'arn:aws:lambda:eu-west-2:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'eu-west-3': 'arn:aws:lambda:eu-west-3:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'il-central-1': 'arn:aws:lambda:il-central-1:746669239226:layer:AWSOpenTelemetryDistroPython:5',
-      'me-central-1': 'arn:aws:lambda:me-central-1:739275441131:layer:AWSOpenTelemetryDistroPython:5',
-      'me-south-1': 'arn:aws:lambda:me-south-1:980921751758:layer:AWSOpenTelemetryDistroPython:5',
-      'sa-east-1': 'arn:aws:lambda:sa-east-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'us-east-1': 'arn:aws:lambda:us-east-1:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'us-east-2': 'arn:aws:lambda:us-east-2:615299751070:layer:AWSOpenTelemetryDistroPython:5',
-      'us-west-1': 'arn:aws:lambda:us-west-1:615299751070:layer:AWSOpenTelemetryDistroPython:12',
-      'us-west-2': 'arn:aws:lambda:us-west-2:615299751070:layer:AWSOpenTelemetryDistroPython:12',
-    };
-
-    // Get current region with improved resolution logic
     const regionName = this.region;
-    
-    // Validate that we have a layer ARN for this region
-    if (!layerArns[regionName]) {
-      throw new Error(`OpenTelemetry layer not available for region: ${regionName}. Supported regions: ${Object.keys(layerArns).join(', ')}`);
-    }
-    
-    const layerArn = layerArns[regionName];
-    
-    // Validate that the layer ARN matches the deployment region to prevent cross-region access
-    if (!layerArn.includes(`:${regionName}:`)) {
-      throw new Error(`Layer ARN region mismatch. Expected region ${regionName} but got ARN: ${layerArn}`);
-    }
-    
-    const otelLayer = lambda.LayerVersion.fromLayerVersionArn(this, 'OpenTelemetryLayer', layerArn);
 
     // Define the bundle options for Python Lambda functions
     const pythonBundlingOptions = {
@@ -106,11 +59,6 @@ export class LambdaPetClinicStack extends cdk.Stack {
       }),
       role: lambdaRole,
       timeout: cdk.Duration.seconds(30),
-      tracing: lambda.Tracing.ACTIVE,
-      layers: [otelLayer],
-      environment: {
-        AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-instrument',
-      },
     });
     // Add tags to Lambda function
     cdk.Tags.of(createLambda).add('Team', 'WorkflowTeam');
@@ -127,11 +75,6 @@ export class LambdaPetClinicStack extends cdk.Stack {
       }),
       role: lambdaRole,
       timeout: cdk.Duration.seconds(30),
-      tracing: lambda.Tracing.ACTIVE,
-      layers: [otelLayer],
-      environment: {
-        AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-instrument',
-      },
     });
     // Add tags to Lambda function
     cdk.Tags.of(listLambda).add('Team', 'WorkflowTeam');
@@ -148,10 +91,7 @@ export class LambdaPetClinicStack extends cdk.Stack {
       }),
       role: lambdaRole,
       timeout: cdk.Duration.seconds(30),
-      tracing: lambda.Tracing.ACTIVE,
-      layers: [otelLayer],
       environment: {
-        AWS_LAMBDA_EXEC_WRAPPER: '/opt/otel-instrument',
         VERSION: 'v1-original',
       },
     });
@@ -183,7 +123,6 @@ export class LambdaPetClinicStack extends cdk.Stack {
       description: 'API Gateway for Lambda function',
       deployOptions: {
         stageName: 'prod',
-        tracingEnabled: true,
       },
     });
     // Add tags to API Gateway
@@ -269,11 +208,6 @@ export class LambdaPetClinicStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'DeploymentRegion', {
       value: regionName,
       description: 'The AWS region where this stack is deployed',
-    });
-
-    new cdk.CfnOutput(this, 'OpenTelemetryLayerArn', {
-      value: layerArn,
-      description: 'The OpenTelemetry layer ARN being used',
     });
   }
 }

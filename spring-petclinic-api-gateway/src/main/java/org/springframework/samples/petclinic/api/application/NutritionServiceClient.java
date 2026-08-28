@@ -18,8 +18,6 @@
  */
 package org.springframework.samples.petclinic.api.application;
 
-import io.opentelemetry.instrumentation.annotations.WithSpan;
-import io.opentelemetry.api.trace.Span;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.samples.petclinic.api.dto.PetNutrition;
@@ -34,9 +32,7 @@ public class NutritionServiceClient {
 
     private final WebClient.Builder webClientBuilder;
 
-    @WithSpan
     public Mono<PetNutrition> getPetNutrition(final String petType) {
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
         return webClientBuilder.build()
                 .get()
                 .uri("http://nutrition-service/nutrition/" + petType + "/")

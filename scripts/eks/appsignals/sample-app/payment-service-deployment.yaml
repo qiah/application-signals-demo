@@ -11,8 +11,6 @@ spec:
     metadata:
       labels:
         io.kompose.service: payment-service-dotnet
-      annotations:
-        instrumentation.opentelemetry.io/inject-dotnet: "true"
     spec:
       serviceAccountName: visits-service-account
       containers:

@@ -15,7 +15,6 @@ interface EksStackProps extends StackProps {
   eksNodeGroupRoleProp: RoleProps,
   ebsCsiAddonRoleProp: RoleProps,
   sampleAppRoleProp: RoleProps,
-  cloudwatchAddonRoleProp: RoleProps,
   rdsClusterEndpoint: string,
   rdsSecurityGroupId: string,
   awsApplicationTag: string,
@@ -28,7 +27,6 @@ export class EksStack extends Stack {
   public readonly SAMPLE_APP_NAMESPACE = 'pet-clinic';
   private readonly NGINX_INGRESS_NAMESPACE = 'ingress-nginx';
   private readonly VISITS_SERVICE_ACCOUNT_NAME = 'visits-service-account';
-  private readonly OTEL_COLLECTOR_SERVICE_ACCOUNT_NAME = 'otel-collector-service-account';
 
   // Path to the yaml manifests to deploy to EKS
   private readonly sampleAppManifestPath = path.join(__dirname, '..', 'manifests/sample-app');
@@ -45,16 +43,13 @@ export class EksStack extends Stack {
   private readonly eksNodeGroupRole: Role;
   private readonly ebsCsiDriverAddonRole: Role;
   private readonly sampleAppRole: Role;
-  private readonly cloudwatchAddonRole: Role;
   private readonly rumIdentityPoolId: string;
   private readonly rumAppMonitorId: string;
 
   // Constructs generated in this stack
   private readonly cluster: Cluster;
   private readonly ebsCsiDriverAddon: CfnAddon;
-  private readonly cloudwatchAddon: CfnAddon;
   private readonly visitsServiceServiceAccount : ServiceAccount;
-  private readonly otelCollectorServiceServiceAccount : ServiceAccount;
   private readonly sampleAppNamespace: KubernetesManifest;
   private readonly nginxIngressNamespace: KubernetesManifest;
   private readonly nginxIngressManifests: KubernetesManifest[];
@@ -67,7 +62,7 @@ export class EksStack extends Stack {
   constructor(scope: Construct, id: string, props: EksStackProps) {
     super(scope, id, props);
 
-    const { vpc, eksClusterRoleProp, eksNodeGroupRoleProp, ebsCsiAddonRoleProp, sampleAppRoleProp, cloudwatchAddonRoleProp, rdsClusterEndpoint, rdsSecurityGroupId, awsApplicationTag, rumIdentityPoolId, rumAppMonitorId } = props;
+    const { vpc, eksClusterRoleProp, eksNodeGroupRoleProp, ebsCsiAddonRoleProp, sampleAppRoleProp, rdsClusterEndpoint, rdsSecurityGroupId, awsApplicationTag, rumIdentityPoolId, rumAppMonitorId } = props;
     this.vpc = vpc;
     this.rdsClusterEndpoint = rdsClusterEndpoint;
     this.rumIdentityPoolId = rumIdentityPoolId;
@@ -83,12 +78,9 @@ export class EksStack extends Stack {
     this.eksNodeGroupRole = new Role(this, 'EksNodeGroupRole', eksNodeGroupRoleProp);
     this.ebsCsiDriverAddonRole = new Role(this, 'EbsCsiDriverAddonRole', ebsCsiAddonRoleProp);
     this.sampleAppRole = new Role(this, 'SampleAppRole', sampleAppRoleProp);
-    this.cloudwatchAddonRole = new Role(this, 'CloduwatchAddonRole', cloudwatchAddonRoleProp);
 
     // Create EKS Cluster
     this.cluster = this.createEksCluster(awsApplicationTag);
-    // Add the Cloduwatch Addon
-    this.cloudwatchAddon = this.addCloudwatchAddon();
     // Add the Ebs Csi Driver Addon
     this.ebsCsiDriverAddon = this.addEbsCsiDriverAddon();
     // Create pet-clinic namespace
@@ -96,15 +88,14 @@ export class EksStack extends Stack {
     // Create ingress-nginx namespace
     this.nginxIngressNamespace = this.createNamespace(this.NGINX_INGRESS_NAMESPACE);
     // Create service accounts for the sample app in the pet-clinic namespace
-    const { visitsServiceServiceAccount, otelCollectorServiceServiceAccount } = this.createSampleAppRoleServiceAccount();
+    const { visitsServiceServiceAccount } = this.createSampleAppRoleServiceAccount();
     this.visitsServiceServiceAccount = visitsServiceServiceAccount;
-    this.otelCollectorServiceServiceAccount = otelCollectorServiceServiceAccount;
     // Deploy the manifests for db. Db manifest relies on the ebs csi driver add-on
-    this.deployManifests(this.dbManifestPath, [this.ebsCsiDriverAddon, this.visitsServiceServiceAccount, this.otelCollectorServiceServiceAccount ]);
+    this.deployManifests(this.dbManifestPath, [this.ebsCsiDriverAddon, this.visitsServiceServiceAccount]);
     // Deploy the manifests for mongodb. Mongodb manifest relies on the ebs csi driver add-on
-    this.deployManifests(this.mongodbManifestPath, [this.ebsCsiDriverAddon, this.visitsServiceServiceAccount, this.otelCollectorServiceServiceAccount ]);
+    this.deployManifests(this.mongodbManifestPath, [this.ebsCsiDriverAddon, this.visitsServiceServiceAccount]);
     // Deploy the sample app.
-    this.deployManifests(this.sampleAppManifestPath, [this.visitsServiceServiceAccount, this.otelCollectorServiceServiceAccount ]);
+    this.deployManifests(this.sampleAppManifestPath, [this.visitsServiceServiceAccount]);
     // Deploy the ngnix ingress. 
     this.nginxIngressManifests = this.deployManifests(this.nginxIngressManifestPath, [this.nginxIngressNamespace]);
     // Get the ingress external ip
@@ -187,20 +178,10 @@ export class EksStack extends Stack {
       }
     );
 
-    const otelCollectorServiceServiceAccount = this.cluster.addServiceAccount('OtelCollectorServiceAccount',
-      {
-        name: this.OTEL_COLLECTOR_SERVICE_ACCOUNT_NAME,
-        namespace: this.SAMPLE_APP_NAMESPACE,
-        annotations: {
-          'eks.amazonaws.com/role-arn': this.sampleAppRole.roleArn,
-        }
-      }
-  );
     // The namespace needs to already exist before creating the service account
     visitsServiceServiceAccount.node.addDependency(this.sampleAppNamespace);
-    otelCollectorServiceServiceAccount.node.addDependency(this.sampleAppNamespace);
 
-    return { visitsServiceServiceAccount, otelCollectorServiceServiceAccount };
+    return { visitsServiceServiceAccount };
   }
 
   deployManifests(manifestPath: string, dependencies: any[]) {
@@ -216,10 +197,6 @@ export class EksStack extends Stack {
       dependencies.forEach((dependnecy) => {
         manifest.node.addDependency(dependnecy);
       })
-      // Make sure that the cloudwatch addon exists already so that the services are discoverable  
-      // without restarting the pods
-      manifest.node.addDependency(this.cloudwatchAddon);
-      
       manifests.push(manifest);
     })
 
@@ -296,63 +273,6 @@ export class EksStack extends Stack {
       })
     );
     
-    // Add trust policy for the otel collector service account
-    const otelCondition = new CfnJson(this, `${roleName}OtelOidcCondition`, {
-      value: {
-        [`${this.cluster.openIdConnectProvider.openIdConnectProviderIssuer}:aud`]: 'sts.amazonaws.com',
-        [`${this.cluster.openIdConnectProvider.openIdConnectProviderIssuer}:sub`]: `system:serviceaccount:${this.SAMPLE_APP_NAMESPACE}:${this.OTEL_COLLECTOR_SERVICE_ACCOUNT_NAME}`,
-      },
-    });
-    
-    const otelPrincipal = new FederatedPrincipal(
-      this.cluster.openIdConnectProvider.openIdConnectProviderArn,
-      {
-        'StringEquals': otelCondition,
-      },
-      'sts:AssumeRoleWithWebIdentity'
-    );
-    
-    role.assumeRolePolicy?.addStatements(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
-        principals: [otelPrincipal],
-        actions: ['sts:AssumeRoleWithWebIdentity'],
-      })
-    );
   }
 
-  addCloudwatchAddon() {
-    // Apply federated principal to the cloudwatch addon role
-    const openIdConnectProviderIssuer = this.cluster.openIdConnectProvider.openIdConnectProviderIssuer;
-    const stringCondition = new CfnJson(this, `CloudwatchAddonOidcCondition`, {
-      value: {
-        [`${openIdConnectProviderIssuer}:aud`]: 'sts.amazonaws.com',
-      },
-    });
-
-    const federatedPrincipal = new FederatedPrincipal(
-      this.cluster.openIdConnectProvider.openIdConnectProviderArn,
-      {
-        'StringEquals': stringCondition,
-      },
-      'sts:AssumeRoleWithWebIdentity'
-    )
-  
-    this.cloudwatchAddonRole.assumeRolePolicy?.addStatements(
-      new PolicyStatement({
-        effect: Effect.ALLOW,
-        principals: [federatedPrincipal],
-        actions: ['sts:AssumeRoleWithWebIdentity'],
-      })
-    );
-
-    const addon = new CfnAddon(this, 'CloudWatchAddonAddon', {
-      addonName: 'amazon-cloudwatch-observability',
-      clusterName: this.cluster.clusterName,
-      serviceAccountRoleArn: this.cloudwatchAddonRole.roleArn, 
-      resolveConflicts: 'OVERWRITE',
-    });
-
-    return addon;
-  }
 }

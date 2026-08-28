@@ -117,10 +117,6 @@ The Lambda functions are automatically bundled during deployment using CDK's ass
 
 For the alternate implementation, a separate S3 bucket is used to store the code that will be deployed during the versioning process.
 
-## OpenTelemetry Integration
-
-The Lambda functions are configured with the AWS OpenTelemetry layer for distributed tracing and instrumentation with AWS Application Signals.
-
 ## Outputs
 
 After deployment, the CDK stack will output the URLs for accessing the API endpoints:

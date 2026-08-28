@@ -18,8 +18,6 @@ export class IamRolesStack extends Stack {
         });
 
         const taskRolePolicies: string[] = [
-            'AWSXrayWriteOnlyAccess',
-            'CloudWatchAgentServerPolicy',
             'service-role/AmazonEC2ContainerServiceRole',
             'AmazonECS_FullAccess',
             'AmazonSQSFullAccess',
@@ -41,7 +39,6 @@ export class IamRolesStack extends Stack {
         });
 
         const taskExecutionRolePolicies = [
-            'CloudWatchAgentServerPolicy',
             'service-role/AmazonECSTaskExecutionRolePolicy',
         ];
 

@@ -1,9 +1,10 @@
 # Introduction
-This is a modified version of the [spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices) Spring Boot sample application. 
-Our modifications focus on showcasing the capabilities of Application Signals within a Spring Boot environment.
+This is a modified version of the [spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices) Spring Boot sample application.
 If your interest lies in exploring the broader aspects of the Spring Boot stack, we recommend visiting the original repository at [spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices).
 
-In the following, we will focus on how customers can set up the current sample application to explore the features of Application Signals.
+**This fork has all OpenTelemetry / ADOT instrumentation removed.** The application deploys and runs
+uninstrumented across every platform below, and serves as a clean base for adding new instrumentation.
+The sections below cover how to build and deploy the sample application on each platform.
 
 # Disclaimer
 
@@ -20,7 +21,6 @@ This code for sample application is intended for demonstration purposes only. It
 * A Linux machine with x86-64 (AMD64) architecture is required for building Docker images for the sample application.
 * Docker is installed and running on the machine.
 * AWS CLI 2.x is installed. For more information about installing the AWS CLI, see [Install or update the latest version of the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
-* Golang is installed.
 
 ## Additional Prerequisites for Deployment
 * kubectl is installed - https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
@@ -28,9 +28,8 @@ This code for sample application is intended for demonstration purposes only. It
 * jq is installed - https://jqlang.github.io/jq/download/
 * AWS CDK >= v2.1024.0 is installed - https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_install
 * Node.js >= v18.0.0 is installed.
-* Golang is installed.
 * [Optional] If you plan to install the infrastructure resources using Terraform, terraform cli is required. https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
-* [Optional] If you want to try out AWS Bedrock/GenAI support with Application Signals, enable Amazon Titian, Anthropic Claude, Meta Llama foundation models by following the instructions in https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html
+* [Optional] If you want to try out the AWS Bedrock/GenAI parts of the demo, enable Amazon Titan, Anthropic Claude, Meta Llama foundation models by following the instructions in https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html
 # EKS demo
 
 ## Deploy via Shell Scripts
@@ -83,7 +82,7 @@ export REGION='us-east-1'
 ./push-ecr.sh
 ```
 
-### Try Application Signals with the sample application
+### Deploy the sample application
 1. Set up a EKS cluster and deploy sample app. Replace `region-name` with the region you choose.
 
    ``` shell

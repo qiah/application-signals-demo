@@ -34,10 +34,6 @@ check_if_step_failed_and_exit() {
 ../create-cluster.sh $CLUSTER_NAME $REGION
 check_if_step_failed_and_exit "There was an error creating cluster $CLUSTER_NAME in region $REGION, exiting"
 
-# enable application signals auto-instrumentation
-../enable-app-signals.sh $CLUSTER_NAME $REGION $NAMESPACE
-check_if_step_failed_and_exit "There was an error enabling app signals with namespace $NAMESPACE, exiting"
-
 # enable aws-ebs-csi-driver 
 ../enable-ebs-csi-driver.sh $CLUSTER_NAME $REGION $NAMESPACE
 check_if_step_failed_and_exit "There was an error enabling aws-ebs-csi-driver with namespace $NAMESPACE, exiting"

@@ -1,5 +1,4 @@
 from py_eureka_client import eureka_client
-from opentelemetry import trace
 import requests
 import logging
 import json
@@ -17,7 +16,6 @@ def resolve_service_url(service_name):
         raise ValueError("no valid instance found for service '%s'", service_name)
 
 def get_owner_info(owner_id):
-    trace.get_current_span().set_attribute("customer.id", owner_id)
     server_url = resolve_service_url("customers-service")
     response = requests.get(server_url + "owner/" + str(owner_id) + "")
     logger.error(server_url + "owner/" + str(owner_id) + "", response.status_code)

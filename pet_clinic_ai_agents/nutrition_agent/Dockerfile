@@ -16,4 +16,4 @@ EXPOSE 8080
 COPY . /app
 
 # Start the application
-CMD ["opentelemetry-instrument", "python", "-m", "nutrition_agent"]
+CMD ["python", "-m", "nutrition_agent"]

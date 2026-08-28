@@ -100,7 +100,6 @@ module "eks" {
   eks_managed_node_groups = {
     default = {
       desired_size = 3
-      # iam_role_additional_policies = ["arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"]
       instance_types = ["t3.large"]
       tags = {
         Owner = "default"

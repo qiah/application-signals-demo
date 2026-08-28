@@ -114,12 +114,6 @@
       <artifactId>webjars-locator-core</artifactId>
     </dependency>
 
-    <!-- open telemetry -->
-    <dependency>
-      <groupId>io.opentelemetry.instrumentation</groupId>
-      <artifactId>opentelemetry-instrumentation-annotations</artifactId>
-      <version>1.22.1</version>
-    </dependency>
 
     <!-- AWS SDK -->
     <dependency>

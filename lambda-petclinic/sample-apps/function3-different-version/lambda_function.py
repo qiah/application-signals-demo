@@ -1,8 +1,6 @@
 import json
 import boto3
 import os
-import random
-from opentelemetry import trace
 
 
 dynamodb = boto3.resource('dynamodb')
@@ -10,11 +8,6 @@ table_name = 'HistoricalRecordDynamoDBTable'
 table = dynamodb.Table(table_name)
 
 def lambda_handler(event, context):
-
-    current_span = trace.get_current_span()
-    # Add an attribute to the current span
-    owner_id = random.randint(1, 9)  # Generate a random value between 1 and 9
-    current_span.set_attribute("owner.id", owner_id)
 
     query_params = event.get('queryStringParameters', {})
 

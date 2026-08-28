@@ -7,7 +7,6 @@ from metrics_tester import run_test as run_metric_test
 from traces_tester import run_test as run_trace_test
 from logs_tester import run_test as run_logs_test
 from tags_tester import run_test as run_tag_test
-from otel_resource_attributes_tester import run_test as run_otel_resource_attributes_test
 from cloudtrail_tester import run_test as run_cloudtrail_test
 
 
@@ -291,7 +290,6 @@ def load_test_cases_from_files():
         'traces': {'trace_test_cases': []},
         'logs': {'log_test_cases': []},
         'tags': {'tag_test_cases': []},
-        'otel_resource_attributes': {'otel_resource_attribute_test_cases': []},
         'cloudtrail': {'cloudtrail_test_cases': []}
     }
     
@@ -337,15 +335,6 @@ def load_test_cases_from_files():
         print(f"Failed to load tags test cases: {str(e)}")
     
     try:
-        otel_file = os.path.join(current_dir, 'otel_resource_attributes_test_cases.json')
-        if os.path.exists(otel_file):
-            with open(otel_file, 'r') as f:
-                otel_data = json.load(f)
-                test_cases['otel_resource_attributes'] = otel_data
-    except Exception as e:
-        print(f"Failed to load otel resource attributes test cases: {str(e)}")
-    
-    try:
         cloudtrail_file = os.path.join(current_dir, 'cloudtrail_test_cases.json')
         if os.path.exists(cloudtrail_file):
             with open(cloudtrail_file, 'r') as f:
@@ -363,7 +352,6 @@ def lambda_handler(event, context):
         'traces': json.loads(os.environ.get('TRACES_TEST_CASES', '{"trace_test_cases": []}')),
         'logs': json.loads(os.environ.get('LOGS_TEST_CASES', '{"log_test_cases": []}')),
         'tags': json.loads(os.environ.get('TAGS_TEST_CASES', '{"tag_test_cases": []}')),
-        'otel_resource_attributes': json.loads(os.environ.get('OTEL_RESOURCE_ATTRIBUTES_TEST_CASES', '{"otel_resource_attribute_test_cases": []}')),
         'cloudtrail': json.loads(os.environ.get('CLOUDTRAIL_TEST_CASES', '{"cloudtrail_test_cases": []}'))
     }
     
@@ -377,7 +365,6 @@ def lambda_handler(event, context):
         'traces': {'total': 0, 'passed': 0},
         'logs': {'total': 0, 'passed': 0},
         'tags': {'total': 0, 'passed': 0},
-        'otel_resource_attributes': {'total': 0, 'passed': 0},
         'cloudtrail': {'total': 0, 'passed': 0}
     }
     
@@ -386,7 +373,6 @@ def lambda_handler(event, context):
         'traces': ('trace_test_cases', run_trace_test),
         'logs': ('log_test_cases', run_logs_test),
         'tags': ('tag_test_cases', run_tag_test),
-        'otel_resource_attributes': ('otel_resource_attribute_test_cases', run_otel_resource_attributes_test),
         'cloudtrail': ('cloudtrail_test_cases', run_cloudtrail_test)
     }
     

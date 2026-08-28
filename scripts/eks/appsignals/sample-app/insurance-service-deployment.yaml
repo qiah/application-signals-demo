@@ -11,8 +11,6 @@ spec:
     metadata:
       labels:
         io.kompose.service: insurance-service-python
-      annotations:
-        instrumentation.opentelemetry.io/inject-python: 'true'
     spec:
       serviceAccountName: visits-service-account
       containers:

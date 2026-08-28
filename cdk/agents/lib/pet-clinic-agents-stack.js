@@ -58,14 +58,6 @@ class PetClinicAgentsStack extends Stack {
               ],
               resources: ['*']
             }),
-            new iam.PolicyStatement({
-              effect: iam.Effect.ALLOW,
-              actions: [
-                'xray:PutTraceSegments',
-                'xray:PutTelemetryRecords'
-              ],
-              resources: ['*']
-            })
           ]
         })
       }
@@ -86,10 +78,7 @@ class PetClinicAgentsStack extends Stack {
       ImageUri: nutritionAgentImage.imageUri,
       ExecutionRole: agentCoreRole.roleArn,
       Entrypoint: 'nutrition_agent.py',
-      EnvironmentVariables: {
-        OTEL_RESOURCE_ATTRIBUTES: `service.name=${nutritionAgentName},deployment.environment=bedrock-agentcore:default,Application=Audit,Team=AnalyticsTeam,Tier=Tier-4,aws.application_signals.metric_resource_keys=Application&Team&Tier`,
-        OTEL_PYTHON_DISABLED_INSTRUMENTATIONS: 'sqlalchemy,psycopg2,pymysql,sqlite3,aiopg,asyncpg,mysql_connector,system_metrics,google-genai'
-      }
+      EnvironmentVariables: {}
     };
     
     if (props?.nutritionServiceUrl) {
@@ -106,8 +95,7 @@ class PetClinicAgentsStack extends Stack {
       ExecutionRole: agentCoreRole.roleArn,
       Entrypoint: 'pet_clinic_agent.py',
       EnvironmentVariables: {
-        NUTRITION_AGENT_ARN: nutritionAgent.agentArn,
-        OTEL_RESOURCE_ATTRIBUTES: `service.name=${petClinicAgentName},deployment.environment=bedrock-agentcore:default,Application=Audit,Team=AnalyticsTeam,Tier=Tier-4,aws.application_signals.metric_resource_keys=Application&Team&Tier`
+        NUTRITION_AGENT_ARN: nutritionAgent.agentArn
       }
     });
 

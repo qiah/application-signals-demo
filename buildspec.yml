@@ -4,7 +4,6 @@ phases:
   install:
     runtime-versions:
       java: corretto17
-      golang: 1.22
     commands:
       - |
         echo "Installing prerequisites..."
@@ -13,8 +12,6 @@ phases:
         # Verify Docker is installed and running (pre-installed in CodeBuild image)
         docker --version
         systemctl status docker || service docker status || echo "Docker service check"
-        # Verify Go version
-        go version
         # Verify Java version
         java -version
         echo "Prerequisites installed successfully"

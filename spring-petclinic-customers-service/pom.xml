@@ -173,11 +173,6 @@
       <artifactId>aws-java-sdk-sts</artifactId>
       <version>1.12.749</version>
     </dependency>
-    <dependency>
-      <groupId>io.opentelemetry.instrumentation</groupId>
-      <artifactId>opentelemetry-instrumentation-annotations</artifactId>
-      <version>1.22.1</version>
-    </dependency>
 
     <!-- Testing -->
     <dependency>

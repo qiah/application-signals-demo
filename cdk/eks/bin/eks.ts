@@ -9,8 +9,6 @@ import { RdsStack } from '../lib/stacks/rds-stack';
 import { SyntheticCanaryStack } from '../lib/stacks/canary-stack';
 import { MyApplicationStack } from "../lib/stacks/my-application-stack";
 import { CloudWatchRumStack } from "../lib/stacks/rum-stack";
-import { TransactionSearchStack } from "../lib/stacks/transaction-search-stack";
-import { ApplicationSignalsStack } from "../lib/stacks/application-signals-stack";
 import { KnowledgeBaseStack } from "../lib/stacks/knowledge-base-stack";
 import { GuardrailStack } from "../lib/stacks/guardrail-stack";
 import { ResourceExplorerStack } from "../lib/stacks/resource-explorer-stack";
@@ -35,14 +33,6 @@ const rumStack = new CloudWatchRumStack(app, 'AppSignalsRumStack', {
   sampleAppNamespace: 'pet-clinic', // Using the same namespace as in EksStack
 })
 
-// Add X-Ray Transaction Search Stack
-const transactionSearchStack = new TransactionSearchStack(app, 'AppSignalsTransactionSearchStack', {
-  indexingPercentage: 100, // Use 100% for the demo
-})
-
-// Add Application Signals Stack to enable AWS Application Signals
-const applicationSignalsStack = new ApplicationSignalsStack(app, 'AppSignalsEnableStack')
-
 // Add Knowledge Base Stack for Application Signals documentation
 const knowledgeBaseStack = new KnowledgeBaseStack(app, 'AppSignalsKnowledgeBaseStack')
 
@@ -58,7 +48,6 @@ const eksStack = new EksStack(app, 'AppSignalsEksClusterStack', {
   eksNodeGroupRoleProp: iamStack.eksNodeGroupRoleProp,
   ebsCsiAddonRoleProp: iamStack.ebsCsiAddonRoleProp,
   sampleAppRoleProp: iamStack.sampleAppRoleProp,
-  cloudwatchAddonRoleProp: iamStack.cloudwatchAddonRoleProp,
   rdsClusterEndpoint: rdsStack.clusterEndpoint,
   rdsSecurityGroupId: networkStack.rdsSecurityGroupId,
   awsApplicationTag: myApplicationStack.application.attrApplicationTagValue,
@@ -71,8 +60,6 @@ eksStack.addDependency(iamStack);
 eksStack.addDependency(rdsStack);
 eksStack.addDependency(myApplicationStack);
 eksStack.addDependency(rumStack);
-eksStack.addDependency(transactionSearchStack); // Add dependency on Transaction Search Stack
-eksStack.addDependency(applicationSignalsStack); // Add dependency on Application Signals Stack
 eksStack.addDependency(knowledgeBaseStack); // Add dependency on Knowledge Base Stack
 eksStack.addDependency(guardrailStack); // Add dependency on Guardrail Stack
 eksStack.addDependency(resourceExplorerStack); // Add dependency on resource explorer

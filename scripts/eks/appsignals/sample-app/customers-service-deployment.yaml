@@ -20,9 +20,6 @@ spec:
         kompose.version: 1.27.0 (b0ed6a2c9)
       labels:
         io.kompose.service: customers-service-java
-      annotations:
-        sidecar.opentelemetry.io/inject-java: "true"
-        instrumentation.opentelemetry.io/inject-java: "true"
     spec:
       serviceAccountName: visits-service-account
       containers:

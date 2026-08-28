@@ -35,8 +35,6 @@ IAM_ROLE_NAME="k8s-demo-role-${REGION}"
 INSTANCE_PROFILE="k8s-demo-instance-profile"
 INSTANCE_NAMES=("k8s-master" "k8s-worker") 
 KEY_NAME="k8s-demo-key-pair"
-CLOUDWATCH_AGENT_DOWNLOAD_URL="https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm"
-JAVA_INSTRUMENTATION_AGENT_DOWNLOAD_URL="https://github.com/aws-observability/aws-otel-java-instrumentation/releases/latest/download/aws-opentelemetry-agent.jar"
 
 function create_resources() {
     echo "Creating resources..."
@@ -70,8 +68,6 @@ function create_resources() {
     aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/AmazonS3FullAccess"
     aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/AmazonSQSFullAccess"
     aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/AmazonRDSFullAccess"
-    aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-    aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess"
     aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
     aws iam attach-role-policy --role-name $IAM_ROLE_NAME --policy-arn "arn:aws:iam::aws:policy/AmazonEC2FullAccess"
     aws iam put-role-policy --role-name $IAM_ROLE_NAME --policy-name "allow-ecr-access" --policy-document file://allow-ecr-access.json
@@ -218,7 +214,7 @@ sleep 300
 }
 
 
-function install_helm_and_cloudwatch() {
+function install_helm() {
   # Retrieve public IP of master node
   master_ip=$(aws ec2 describe-instances \
       --filters "Name=tag:Name,Values=k8s-master" "Name=instance-state-name,Values=running" \
@@ -229,10 +225,7 @@ function install_helm_and_cloudwatch() {
     kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.12.0/cert-manager.yaml && \
     curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
     chmod 700 get_helm.sh && \
-    ./get_helm.sh && sleep 30 && \
-    git clone https://github.com/aws-observability/helm-charts -q && \
-    cd helm-charts/charts/amazon-cloudwatch-observability/ && \
-    helm upgrade --install --debug --namespace amazon-cloudwatch amazon-cloudwatch-operator ./ --create-namespace --set region=${REGION} --set clusterName=${CLUSTER}
+    ./get_helm.sh && sleep 30
 EOF
 
 }
@@ -298,7 +291,7 @@ function delete_resources() {
 
 
     # Detach and delete IAM policies and role
-    policy_arns=("arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess" "arn:aws:iam::aws:policy/AmazonBedrockFullAccess" "arn:aws:iam::aws:policy/AmazonKinesisFullAccess" "arn:aws:iam::aws:policy/AmazonS3FullAccess" "arn:aws:iam::aws:policy/AmazonSQSFullAccess" "arn:aws:iam::aws:policy/AmazonRDSFullAccess" "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy" "arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess" "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" "arn:aws:iam::aws:policy/AmazonEC2FullAccess")
+    policy_arns=("arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess" "arn:aws:iam::aws:policy/AmazonBedrockFullAccess" "arn:aws:iam::aws:policy/AmazonKinesisFullAccess" "arn:aws:iam::aws:policy/AmazonS3FullAccess" "arn:aws:iam::aws:policy/AmazonSQSFullAccess" "arn:aws:iam::aws:policy/AmazonRDSFullAccess" "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy" "arn:aws:iam::aws:policy/AmazonEC2FullAccess")
 
     for arn in "${policy_arns[@]}"
     do
@@ -335,7 +328,7 @@ else
     create_resources
     run_k8s_master
     run_k8s_worker
-    install_helm_and_cloudwatch
+    install_helm
     install_ebs_csi_driver
     deploy_sample_app
     print_url

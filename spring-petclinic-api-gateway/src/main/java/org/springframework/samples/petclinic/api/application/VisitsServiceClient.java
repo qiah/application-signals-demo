@@ -18,15 +18,10 @@
  */
 package org.springframework.samples.petclinic.api.application;
 
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.instrumentation.annotations.SpanAttribute;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.samples.petclinic.api.dto.VisitDetails;
 import org.springframework.samples.petclinic.api.dto.Visits;
-import org.springframework.samples.petclinic.api.utils.WellKnownAttributes;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -49,11 +44,7 @@ public class VisitsServiceClient {
 
     private final WebClient.Builder webClientBuilder;
 
-    @WithSpan
     public Mono<Visits> getVisitsForPets(final List<Integer> petIds) {
-        // Span.current().setAttribute(WellKnownAttributes.REMOTE_APPLICATION, "visits-service");
-        // Span.current().setAttribute(WellKnownAttributes.REMOTE_OPERATION, "/pets/visits");
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
         return webClientBuilder.build()
             .get()
             .uri(hostname + "pets/visits?petId={petId}", joinIds(petIds))
@@ -62,11 +53,7 @@ public class VisitsServiceClient {
 
     }
 
-    @WithSpan
-    public Mono<Visits> getVisitsForOwnersPets(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, @SpanAttribute(WellKnownAttributes.PET_ID) final int petId) {
-        // Span.current().setAttribute(WellKnownAttributes.REMOTE_APPLICATION, "visits-service");
-        // Span.current().setAttribute(WellKnownAttributes.REMOTE_OPERATION, "/owners/*/pets/{petId}/visits");
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<Visits> getVisitsForOwnersPets(final int ownerId, final int petId) {
         return webClientBuilder.build()
             .get()
             .uri(hostname + "owners/{ownerId}/pets/{petId}/visits", ownerId, petId)
@@ -75,11 +62,7 @@ public class VisitsServiceClient {
 
     }
 
-    @WithSpan
-    public Mono<String> addVisitForOwnersPets(@SpanAttribute(WellKnownAttributes.OWNER_ID) final int ownerId, @SpanAttribute(WellKnownAttributes.PET_ID) final int petId, final VisitDetails visitDetails) {
-        // Span.current().setAttribute(WellKnownAttributes.REMOTE_APPLICATION, "visits-service");
-        // Span.current().setAttribute(WellKnownAttributes.REMOTE_OPERATION, "/owners/*/pets/{petId}/visits");
-        Span.current().setAttribute("aws.local.service", "pet-clinic-frontend-java");
+    public Mono<String> addVisitForOwnersPets(final int ownerId, final int petId, final VisitDetails visitDetails) {
         return webClientBuilder.build()
             .post()
             .uri(hostname + "owners/{ownerId}/pets/{petId}/visits", ownerId, petId)

@@ -20,20 +20,15 @@ package org.springframework.samples.petclinic.visits.web;
 
 import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
 import io.micrometer.core.annotation.Timed;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
-import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.samples.petclinic.visits.Util.WellKnownAttributes;
 import org.springframework.samples.petclinic.visits.aws.DdbService;
 import org.springframework.samples.petclinic.visits.model.Visit;
 import org.springframework.samples.petclinic.visits.model.VisitRepository;
@@ -72,16 +67,12 @@ class VisitResource {
         @Valid @RequestBody Visit visit,
         @PathVariable("ownerId") int ownerId,
         @PathVariable("petId") @Min(1) int petId) {
-        Span.current().setAttribute(WellKnownAttributes.ORDER_ID, UUID.randomUUID().toString());
-        Span.current().setAttribute(WellKnownAttributes.OWNER_ID, ownerId);
-        Span.current().setAttribute(WellKnownAttributes.PET_ID, petId);
 
         log.info("Reaching Post api: owners/*/pets/{petId}/visits for petId: {}", petId);
         validateDate(visit);
         return saveVisit(visit, petId);
     }
 
-    @WithSpan("validateDate")
     private void validateDate(Visit visit) {
         Date currentDate = new Date();
         Date visitDate = visit.getDate();
@@ -91,16 +82,11 @@ class VisitResource {
             String message = "Visit cannot be scheduled for a date more than 30 days in the future.";
             InvalidDateException exception = new InvalidDateException(message);
 
-            // Record the exception in the current span
-            Span currentSpan = Span.current();
-            currentSpan.recordException(exception);
-            currentSpan.setStatus(StatusCode.ERROR, message);
 
             throw exception;
         }
     }
 
-    @WithSpan("saveVisit")
     private Visit saveVisit(Visit visit, int petId) {
         ddbService.putItems();
         visit.setPetId(petId);
@@ -116,9 +102,6 @@ class VisitResource {
 
     @GetMapping("owners/{ownerId}/pets/{petId}/visits")
     public Visits visits(@PathVariable("ownerId") int ownerId, @PathVariable("petId") @Min(1) int petId) throws Exception {
-        Span.current().setAttribute(WellKnownAttributes.OWNER_ID, ownerId);
-        Span.current().setAttribute(WellKnownAttributes.PET_ID, petId);
-        Span.current().setAttribute(WellKnownAttributes.ORDER_ID, petId);
 
 //        return visitRepository.findByPetId(petId);
         log.info("Reaching Get api: /owners/*/pets/{petId}/visits for petId: {}", petId);

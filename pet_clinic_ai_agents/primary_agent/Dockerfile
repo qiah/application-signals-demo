@@ -15,4 +15,4 @@ EXPOSE 8080
 
 COPY . /app
 
-CMD ["opentelemetry-instrument", "python", "-m", "pet_clinic_agent"]
+CMD ["python", "-m", "pet_clinic_agent"]

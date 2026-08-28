@@ -18,7 +18,6 @@
  */
 package org.springframework.samples.petclinic.api.application;
 
-import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import org.springframework.samples.petclinic.api.dto.BillingDetail;
 import org.springframework.samples.petclinic.api.dto.InsuranceDetail;

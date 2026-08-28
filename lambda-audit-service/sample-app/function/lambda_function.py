@@ -1,13 +1,11 @@
 import json
 import boto3
 import time
-from opentelemetry import trace
 from datetime import datetime, timedelta
 
 dynamodb = boto3.resource('dynamodb')
 table_name = 'PetClinicPayment'
 table = dynamodb.Table(table_name)
-tracer = trace.get_tracer(__name__)
 
 def lambda_handler(event, context):
     for record in event['Records']:
@@ -20,10 +18,6 @@ def lambda_handler(event, context):
         id = data["PaymentId"]
         ownerId = data["OwnerId"]
         amount = data["Amount"]
-
-        span = trace.get_current_span()
-        span.set_attribute("order.id", id)
-        span.set_attribute("owner.id", ownerId)
 
         start_time = datetime.now()
         end_time = start_time + timedelta(minutes=2)

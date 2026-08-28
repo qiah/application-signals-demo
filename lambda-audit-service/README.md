@@ -1,6 +1,6 @@
 # Lambda Audit Service
 
-This directory contains a CDK implementation of a Lambda function that processes payment audit information. It is triggered by messages in an SQS queue named `audit-jobs` and uses OpenTelemetry for observability.
+This directory contains a CDK implementation of a Lambda function that processes payment audit information. It is triggered by messages in an SQS queue named `audit-jobs`.
 
 ## Architecture
 
@@ -17,7 +17,6 @@ The CDK stack provisions the following AWS resources:
 
 **audit-service** Lambda function is configured with:
 - Python 3.12 runtime
-- OpenTelemetry layer for AWS Application Signals integration
 - 600 second (10 minute) timeout
 - SQS event source with batch size of 1
 
@@ -29,7 +28,7 @@ The CDK stack provisions the following AWS resources:
   3. Rolls back to stable code from S3 bucket
 - **Trigger**: EventBridge Scheduler runs every 90 minutes
 - **Permissions**: Can update the `audit-service` function code and access S3 deployment artifacts
-- **Use Case**: Generates realistic deployment events and error patterns for Application Signals monitoring
+- **Use Case**: Generates realistic deployment events and error patterns for observability monitoring
 
 ## Prerequisites
 
@@ -143,15 +142,14 @@ The `cdk.sh` script supports the following commands:
 The main audit service code is located in the `sample-app/function` directory. It:
 
 1. Processes SQS messages containing payment information
-2. Adds OpenTelemetry tracing attributes
-3. Queries a DynamoDB table named `PetClinicPayment` to verify payments
-4. Implements retry logic when items are not immediately found
+2. Queries a DynamoDB table named `PetClinicPayment` to verify payments
+3. Implements retry logic when items are not immediately found
 
 ### audit-service-update
 The deployment function code simulates real-world deployment scenarios:
 
 1. **Error Injection**: Deploys code with intentional exceptions to simulate deployment failures
-2. **Monitoring Window**: Waits 2 minutes to allow Application Signals to capture error metrics
+2. **Monitoring Window**: Waits 2 minutes to allow error metrics to be captured
 3. **Automatic Rollback**: Restores stable code from S3 to simulate incident recovery
 4. **Account-Aware**: Dynamically determines the correct S3 bucket using caller's account ID
 
@@ -176,15 +174,8 @@ The audit service is part of a larger payment processing workflow in the Pet Cli
    - It extracts payment information from the message
    - It queries the DynamoDB table to verify the payment was properly recorded
    - If the payment record is not found immediately, it implements retry logic (up to 2 minutes)
-   - It reports success or failure through logs and traces
-
-4. **Observability**:
-   - Both the Payment Service and Audit Service use OpenTelemetry for tracing
-   - They add custom attributes like `owner.id`, `pet.id`, and `order.id` to traces
-   - AWS Application Signals can be used to monitor the entire payment workflow
+   - It reports success or failure through logs
 
 ## Notes
 
-- The Lambda function is integrated with AWS Application Signals via the OpenTelemetry layer
 - The SQS queue is required for the payment service to function correctly - if the queue doesn't exist, the payment service will return errors when attempting to process payments
-- When deploying in a different region, the OpenTelemetry layer ARN will be selected based on the region

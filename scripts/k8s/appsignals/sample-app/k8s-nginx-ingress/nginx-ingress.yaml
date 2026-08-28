@@ -66,15 +66,6 @@ metadata:
     app: ingress-nginx
 data:
   allow-snippet-annotations: "true"
-  enable-opentelemetry: "true"
-  opentelemetry-operation-name: HTTP $request_method $service_name
-  opentelemetry-trust-incoming-span: "true"
-  otel-sampler: AlwaysOn
-  otel-sampler-parent-based: "true"
-  otel-sampler-ratio: "1.0"
-  otel-service-name: nginx-proxy
-  otlp-collector-host: "cloudwatch-agent.amazon-cloudwatch"
-  otlp-collector-port: "4315"
 ---
 
 kind: ConfigMap
@@ -327,20 +318,3 @@ spec:
             periodSeconds: 10
             successThreshold: 1
             timeoutSeconds: 1
-          volumeMounts:
-          - mountPath: /modules_mount
-            name: modules
-      initContainers:
-      - command:
-        - /init_module
-        image: registry.k8s.io/ingress-nginx/opentelemetry:v20230721-3e2062ee5 
-        imagePullPolicy: IfNotPresent
-        name: opentelemetry
-        securityContext:
-          allowPrivilegeEscalation: false
-        volumeMounts:
-        - mountPath: /modules_mount
-          name: modules  
-      volumes:
-        - emptyDir: {}
-          name: modules

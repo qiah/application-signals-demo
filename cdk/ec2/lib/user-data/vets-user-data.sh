@@ -22,73 +22,6 @@ while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
   fi
 done
 
-# Install CloudWatch Agent
-wget https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
-sudo rpm -U ./amazon-cloudwatch-agent.rpm
-
-# Create CloudWatch Agent configuration file
-cat <<'EOC' > /amazon-cloudwatch-agent.json
-{
-  "traces": {
-    "traces_collected": {
-      "application_signals": {}
-    }
-  },
-  "logs": {
-    "metrics_collected": {
-      "application_signals": {
-        "rules":[
-               {
-                  "selectors":[
-                     {
-                        "dimension":"RemoteService",
-                        "match":"169.254.169.254*"
-                     }
-                  ],
-                  "action":"drop"
-               },
-               {
-                  "selectors":[
-                     {
-                        "dimension":"RemoteService",
-                        "match":"setup.demo.local:8761"
-                     }
-                  ],
-                  "replacements":[
-                     {
-                        "target_dimension":"RemoteService",
-                        "value":"discovery-server"
-                     }
-                  ],
-                  "action":"replace"
-               },
-               {
-                  "selectors":[
-                     {
-                        "dimension":"RemoteService",
-                        "match":"setup.demo.local:8888"
-                     }
-                  ],
-                  "replacements":[
-                     {
-                        "target_dimension":"RemoteService",
-                        "value":"config-server"
-                     }
-                  ],
-                  "action":"replace"
-               }
-            ]
-      }
-    }
-  }
-}
-EOC
-
-# Start CloudWatch Agent
-/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
-  -a fetch-config -m ec2 -s \
-  -c file:/amazon-cloudwatch-agent.json
-
 # Switch to ec2-user to run commands
 sudo -iu ec2-user bash <<'EOF'
 set -x
@@ -101,9 +34,6 @@ cd application-signals-demo/
 
 # Build the vets application
 ./mvnw clean install -pl spring-petclinic-vets-service -am -DskipTests
-
-# Download the AWS OpenTelemetry Java Agent
-wget https://github.com/aws-observability/aws-otel-java-instrumentation/releases/latest/download/aws-opentelemetry-agent.jar -O aws-opentelemetry-agent.jar
 
 # Function to wait for a URL to become accessible
 wait_for_url() {
@@ -130,14 +60,6 @@ tmux new-session -s vets -d
 tmux send-keys -t vets "cd spring-petclinic-vets-service/target/" C-m
 tmux send-keys -t vets "export CONFIG_SERVER_URL=http://setup.demo.local:8888" C-m
 tmux send-keys -t vets "export DISCOVERY_SERVER_URL=http://setup.demo.local:8761/eureka" C-m
-tmux send-keys -t vets "export JAVA_TOOL_OPTIONS=' -javaagent:/home/ec2-user/application-signals-demo/aws-opentelemetry-agent.jar'" C-m
-tmux send-keys -t vets "export OTEL_METRICS_EXPORTER=none" C-m
-tmux send-keys -t vets "export OTEL_LOGS_EXPORTER=none" C-m
-tmux send-keys -t vets "export OTEL_AWS_APPLICATION_SIGNALS_ENABLED=true" C-m
-tmux send-keys -t vets "export OTEL_AWS_APPLICATION_SIGNALS_EXPORTER_ENDPOINT=http://localhost:4316/v1/metrics" C-m
-tmux send-keys -t vets "export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" C-m
-tmux send-keys -t vets "export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=http://localhost:4316/v1/traces" C-m
-tmux send-keys -t vets "export OTEL_RESOURCE_ATTRIBUTES=\"service.name=${service_name}\"" C-m
 tmux send-keys -t vets "export SPRING_PROFILES_ACTIVE=ec2" C-m
 tmux send-keys -t vets "java -jar spring-petclinic-vet*.jar" C-m
 EOF

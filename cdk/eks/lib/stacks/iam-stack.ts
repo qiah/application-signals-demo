@@ -7,7 +7,6 @@ export class IAMStack extends Stack {
   public readonly eksNodeGroupRoleProp: RoleProps ;
   public readonly ebsCsiAddonRoleProp: RoleProps;
   public readonly sampleAppRoleProp: RoleProps;
-  public readonly cloudwatchAddonRoleProp: RoleProps;
   public readonly syntheticCanaryRoleProp: RoleProps;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -68,17 +67,7 @@ export class IAMStack extends Stack {
         ManagedPolicy.fromAwsManagedPolicyName('AmazonKinesisFullAccess'),
         ManagedPolicy.fromAwsManagedPolicyName('AmazonDynamoDBFullAccess'),
         ManagedPolicy.fromAwsManagedPolicyName('AmazonBedrockFullAccess'),
-        ManagedPolicy.fromAwsManagedPolicyName('AWSXrayFullAccess'),
         ManagedPolicy.fromAwsManagedPolicyName('SecretsManagerReadWrite'),
-      ],
-    };
-
-    // Role prop for the Cloudwatch Addon Add-on 
-    this.cloudwatchAddonRoleProp = {
-      roleName: 'PetClinicCloudwatchAddonRole',
-      assumedBy: new ServicePrincipal('eks.amazonaws.com'),
-      managedPolicies: [
-        ManagedPolicy.fromAwsManagedPolicyName('CloudWatchAgentServerPolicy'),
       ],
     };
 

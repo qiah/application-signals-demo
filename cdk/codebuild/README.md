@@ -112,7 +112,6 @@ The CodeBuild project will:
    - Java 17 (Corretto)
    - Node.js 18
    - jq
-   - Golang
 
 2. **Build Spring Boot Services**
    - Run `./mvnw clean install -P buildDocker`
@@ -126,7 +125,6 @@ The CodeBuild project will:
    - Node.js service (nutrition)
    - .NET service (payment)
    - Traffic generator
-   - OpenTelemetry collector
 
 ## Monitoring Builds
 
