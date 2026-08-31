@@ -3,7 +3,7 @@ psql_pass=$1
 private_setup_ip_address=$2
 SVC_NAME=$3
 
-sudo yum install python3-pip python3-devel postgresql15 libpq-devel gcc* tmux -y
+sudo yum install python3-pip python3-devel postgresql15 libpq-devel gcc tmux -y
 
 # get rds endpoint
 rds_endpoint=`aws rds describe-db-instances --db-instance-identifier petclinic-python --query "DBInstances[*].Endpoint.Address"`
