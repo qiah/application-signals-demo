@@ -210,7 +210,7 @@ export class KnowledgeBaseStack extends cdk.Stack {
       knowledgeBaseConfiguration: {
         type: 'VECTOR',
         vectorKnowledgeBaseConfiguration: {
-          embeddingModelArn: 'arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0',
+          embeddingModelArn: `arn:aws:bedrock:${this.region}::foundation-model/amazon.titan-embed-text-v2:0`,
         }
       },
       // You must choose a vector store; here we let Bedrock manage it via the default serverless OpenSearch collection
