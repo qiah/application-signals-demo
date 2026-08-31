@@ -62,10 +62,6 @@ export class AuditServiceStack extends cdk.Stack {
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
 
-    lambdaExecutionRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('CloudWatchLambdaApplicationSignalsExecutionRolePolicy')
-    );
-
     const dynamoDbPolicy = new iam.Policy(this, 'DynamoDBReadPolicy', {
       policyName: 'lambda_dynamodb_read_policy',
       statements: [

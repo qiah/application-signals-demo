@@ -16,8 +16,6 @@ logging:
     root: OFF
     org.springframework.samples.petclinic.customers.web.PetResource: INFO
     org.springframework.samples.petclinic.customers.aws.SqsService: FATAL
-  pattern:
-    level: trace_id=%mdc{trace_id} span_id=%mdc{span_id} trace_flags=%mdc{trace_flags} %5p
 
 ---
 spring:

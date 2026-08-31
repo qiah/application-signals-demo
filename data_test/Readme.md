@@ -2,6 +2,13 @@
 
 This directory contains a comprehensive testing framework for validating Status of APM Demo APP's functionality by running data validation on Traces / Logs / Metrics that it should generate.
 
+> **Note:** the runners and CDK deployment here are intact and reusable, but most test
+> cases have been removed along with the OpenTelemetry/ADOT instrumentation they asserted
+> on. `logs_test_cases.json` and `traces_test_cases.json` are intentionally empty — they
+> targeted the `aws/spans` log group and X-Ray service nodes, neither of which the
+> uninstrumented app produces. Remaining live cases: 1 metric (CloudWatch RUM), 5 resource
+> tag cases, 1 CloudTrail case. Add new cases here once the app is instrumented again.
+
 ## Overview
 
 The testing framework consists of three main components:
