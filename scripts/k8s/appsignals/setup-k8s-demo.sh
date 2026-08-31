@@ -252,7 +252,7 @@ function deploy_sample_app() {
       --output text)
 
   ssh -o StrictHostKeyChecking=no -i "${KEY_NAME}.pem" ec2-user@$master_ip << EOF
-    git clone https://github.com/aws-observability/application-signals-demo.git && \
+    git clone -b omni-demo https://github.com/qiah/application-signals-demo.git && \
     cd application-signals-demo/scripts/k8s/appsignals && \
     ./deploy-sample-app.sh ${REGION}
 EOF

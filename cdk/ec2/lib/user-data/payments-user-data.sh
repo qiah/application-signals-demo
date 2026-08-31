@@ -29,7 +29,7 @@ set -x
 cd ~
 
 # Clone the application repository
-git clone https://github.com/aws-observability/application-signals-demo.git
+git clone -b omni-demo https://github.com/qiah/application-signals-demo.git
 cd application-signals-demo/
 
 # Function to wait for a URL to become accessible
