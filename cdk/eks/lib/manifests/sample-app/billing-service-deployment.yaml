@@ -21,6 +21,22 @@ spec:
           #   allowPrivilegeEscalation: true
           name: billing-service-python
           env:
+            - name: OTEL_SERVICE_NAME
+              value: billing-service-python
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.namespace=pet-clinic
+            # Service DNS of the CloudWatch Observability add-on agent - not localhost.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://cloudwatch-agent.amazon-cloudwatch.svc.cluster.local:4318
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_METRICS_EXPORTER
+              value: otlp
+            - name: OTEL_LOGS_EXPORTER
+              value: otlp
+            # Python needs this for application logs over OTLP.
+            - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+              value: "true"
             - name: DJANGO_SETTINGS_MODULE
               value: "pet_clinic_billing_service.settings"
             - name: PYTHONPATH
@@ -45,7 +61,7 @@ spec:
           args:
             - |
               python manage.py migrate
-              python manage.py runserver 0.0.0.0:8800 --noreload
+              opentelemetry-instrument python manage.py runserver 0.0.0.0:8800 --noreload
           ports:
             - containerPort: 8800
           imagePullPolicy: Always

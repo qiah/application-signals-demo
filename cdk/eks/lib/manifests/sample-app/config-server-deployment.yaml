@@ -24,6 +24,28 @@ spec:
     spec:
       containers:
         - image: 111122223333.dkr.ecr.us-west-2.amazonaws.com/springcommunity/spring-petclinic-config-server:latest
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: config-server
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.namespace=pet-clinic
+            # Service DNS of the CloudWatch Observability add-on agent - not localhost.
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://cloudwatch-agent.amazon-cloudwatch.svc.cluster.local:4318
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: http/protobuf
+            - name: OTEL_METRICS_EXPORTER
+              value: otlp
+            - name: OTEL_LOGS_EXPORTER
+              value: otlp
+            # The pod command overrides the image ENTRYPOINT, so attach the agent via
+            # JAVA_TOOL_OPTIONS rather than editing every command array.
+            - name: JAVA_TOOL_OPTIONS
+              value: -javaagent:/application/opentelemetry-javaagent.jar
+            # Spring Boot classpaths exceed the 1024-char OTLP attribute cap, which drops
+            # the whole metrics batch. Dropping the process resource provider avoids it.
+            - name: OTEL_JAVA_DISABLED_RESOURCE_PROVIDERS
+              value: io.opentelemetry.instrumentation.resources.ProcessResourceProvider
           securityContext:
             runAsNonRoot: true
             allowPrivilegeEscalation: false
