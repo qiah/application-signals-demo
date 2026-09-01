@@ -17,7 +17,6 @@ interface EksStackProps extends StackProps {
   sampleAppRoleProp: RoleProps,
   rdsClusterEndpoint: string,
   rdsSecurityGroupId: string,
-  awsApplicationTag: string,
   rumIdentityPoolId: string,
   rumAppMonitorId: string
 }
@@ -62,7 +61,7 @@ export class EksStack extends Stack {
   constructor(scope: Construct, id: string, props: EksStackProps) {
     super(scope, id, props);
 
-    const { vpc, eksClusterRoleProp, eksNodeGroupRoleProp, ebsCsiAddonRoleProp, sampleAppRoleProp, rdsClusterEndpoint, rdsSecurityGroupId, awsApplicationTag, rumIdentityPoolId, rumAppMonitorId } = props;
+    const { vpc, eksClusterRoleProp, eksNodeGroupRoleProp, ebsCsiAddonRoleProp, sampleAppRoleProp, rdsClusterEndpoint, rdsSecurityGroupId, rumIdentityPoolId, rumAppMonitorId } = props;
     this.vpc = vpc;
     this.rdsClusterEndpoint = rdsClusterEndpoint;
     this.rumIdentityPoolId = rumIdentityPoolId;
@@ -80,7 +79,7 @@ export class EksStack extends Stack {
     this.sampleAppRole = new Role(this, 'SampleAppRole', sampleAppRoleProp);
 
     // Create EKS Cluster
-    this.cluster = this.createEksCluster(awsApplicationTag);
+    this.cluster = this.createEksCluster();
     // Add the Ebs Csi Driver Addon
     this.ebsCsiDriverAddon = this.addEbsCsiDriverAddon();
     // Create pet-clinic namespace
@@ -104,16 +103,15 @@ export class EksStack extends Stack {
     this.deployManifests(this.trafficGeneratorManifestPath,  [this.sampleAppNamespace, ...this.nginxIngressManifests, this.ingressExternalIp]);
   }
 
-  createEksCluster(awsApplicationTag: string) {
+  createEksCluster() {
     const cluster = new Cluster(this, 'EKSCluster', {
-      clusterName: this.CLUSTER_NAME, 
+      clusterName: this.CLUSTER_NAME,
       version: this.clusterKubernetesVersion,
       mastersRole: this.eksClusterRole,
       vpc: this.vpc,
       defaultCapacity: 0,
       // Make sure this version matches the this.clusterKubernetesVersion
       kubectlLayer: new KubectlV31Layer(this, 'kubectl'),
-      tags: {"awsApplication": awsApplicationTag}
     });
 
     // Retrieve the latest node group ami. This will ensure that the ami doesn't expire for long live instances

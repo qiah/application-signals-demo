@@ -6,7 +6,6 @@ import { IAMStack } from '../lib/stacks/iam-stack';
 import { EksStack } from '../lib/stacks/eks-stack';
 import { RdsStack } from '../lib/stacks/rds-stack';
 import { SyntheticCanaryStack } from '../lib/stacks/canary-stack';
-import { MyApplicationStack } from "../lib/stacks/my-application-stack";
 import { CloudWatchRumStack } from "../lib/stacks/rum-stack";
 import { KnowledgeBaseStack } from "../lib/stacks/knowledge-base-stack";
 import { GuardrailStack } from "../lib/stacks/guardrail-stack";
@@ -23,8 +22,6 @@ const rdsStack = new RdsStack(app, 'AppSignalsEksRdsStack', {
 })
 
 rdsStack.addDependency(networkStack);
-
-const myApplicationStack = new MyApplicationStack(app, 'MyApplicationStack')
 
 const rumStack = new CloudWatchRumStack(app, 'AppSignalsRumStack', {
   sampleAppNamespace: 'pet-clinic', // Using the same namespace as in EksStack
@@ -47,7 +44,6 @@ const eksStack = new EksStack(app, 'AppSignalsEksClusterStack', {
   sampleAppRoleProp: iamStack.sampleAppRoleProp,
   rdsClusterEndpoint: rdsStack.clusterEndpoint,
   rdsSecurityGroupId: networkStack.rdsSecurityGroupId,
-  awsApplicationTag: myApplicationStack.application.attrApplicationTagValue,
   rumIdentityPoolId: rumStack.identityPoolId,
   rumAppMonitorId: rumStack.appMonitorId
 });
@@ -55,7 +51,6 @@ const eksStack = new EksStack(app, 'AppSignalsEksClusterStack', {
 eksStack.addDependency(networkStack);
 eksStack.addDependency(iamStack);
 eksStack.addDependency(rdsStack);
-eksStack.addDependency(myApplicationStack);
 eksStack.addDependency(rumStack);
 eksStack.addDependency(knowledgeBaseStack); // Add dependency on Knowledge Base Stack
 eksStack.addDependency(guardrailStack); // Add dependency on Guardrail Stack
