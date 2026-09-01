@@ -46,7 +46,9 @@ export class RdsStack extends Stack {
     // Create parameter group for slow SQL logging
     const parameterGroup = new ParameterGroup(this, 'EksSlowSQLParameterGroup', {
       engine: DatabaseClusterEngine.auroraPostgres({
-        version: AuroraPostgresEngineVersion.VER_15_4,
+        // 15.4 was withdrawn by AWS; 15.18 is the only remaining 15.x. The CDK enum
+        // in aws-cdk-lib 2.208.0 stops at VER_15_12, so name the version explicitly.
+        version: AuroraPostgresEngineVersion.of('15.18', '15'),
       }),
       description: 'Parameter group for enabling slow SQL logging',
       parameters: {
@@ -59,7 +61,9 @@ export class RdsStack extends Stack {
     // Create an Aurora PostgreSQL cluster
     const dbCluster = new DatabaseCluster(this, 'EksRdsCluster', {
       engine: DatabaseClusterEngine.auroraPostgres({
-        version: AuroraPostgresEngineVersion.VER_15_4,
+        // 15.4 was withdrawn by AWS; 15.18 is the only remaining 15.x. The CDK enum
+        // in aws-cdk-lib 2.208.0 stops at VER_15_12, so name the version explicitly.
+        version: AuroraPostgresEngineVersion.of('15.18', '15'),
       }),
       credentials: Credentials.fromUsername(this.masterUsername, {
         password: dbSecret.secretValue,
