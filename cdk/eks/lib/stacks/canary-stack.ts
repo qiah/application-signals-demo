@@ -51,7 +51,9 @@ export class SyntheticCanaryStack extends Stack {
       new Canary(this, `${canaryName}-canary`, {
         canaryName: canaryName,
         role: this.syntheticCanaryRole,
-        runtime: Runtime.SYNTHETICS_NODEJS_PUPPETEER_6_2,
+        // 6.2 was deprecated by AWS and is rejected at create time. 9.1 is the newest
+        // runtime aws-cdk-lib 2.208.0 exposes and is still supported.
+        runtime: Runtime.SYNTHETICS_NODEJS_PUPPETEER_9_1,
         test: Test.custom({
           code: Code.fromAsset(path.join(this.canaryScriptPath, `${canaryName}`)),
           handler: `${canaryName}.handler`,
