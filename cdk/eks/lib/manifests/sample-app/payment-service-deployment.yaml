@@ -18,19 +18,6 @@ spec:
         - image: 111122223333.dkr.ecr.us-west-2.amazonaws.com/dotnet-petclinic-payment:latest
           name: payment-service-dotnet
           env:
-            - name: OTEL_SERVICE_NAME
-              value: payment-service-dotnet
-            - name: OTEL_RESOURCE_ATTRIBUTES
-              value: service.namespace=pet-clinic
-            # Service DNS of the CloudWatch Observability add-on agent - not localhost.
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://cloudwatch-agent.amazon-cloudwatch.svc.cluster.local:4318
-            - name: OTEL_EXPORTER_OTLP_PROTOCOL
-              value: http/protobuf
-            - name: OTEL_METRICS_EXPORTER
-              value: otlp
-            - name: OTEL_LOGS_EXPORTER
-              value: otlp
             - name: ASPNETCORE_ENVIRONMENT
               value: Development
             - name: "ASPNETCORE_URLS"
