@@ -420,7 +420,9 @@ export class EcsClusterStack extends Stack {
                 SPRING_PROFILES_ACTIVE: 'ecs',
                 OTEL_SERVICE_NAME: serviceName,
                 // Attach the OTel Java agent (baked into the image) without editing the entrypoint.
-                JAVA_TOOL_OPTIONS: '-javaagent:/application/opentelemetry-javaagent.jar',
+                // Also force Reactor Netty onto NIO: the native epoll transport in Netty 4.1.76 spins on
+                // "epoll_wait(..) failed: Function not implemented" on current 5.10 kernels and stalls requests.
+                JAVA_TOOL_OPTIONS: '-javaagent:/application/opentelemetry-javaagent.jar -Dreactor.netty.native=false -Dio.netty.transport.noNative=true',
                 ...this.OTEL_ENV,
                 ...environmentArgs,
             },

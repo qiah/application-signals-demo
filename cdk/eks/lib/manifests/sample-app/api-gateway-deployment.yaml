@@ -53,8 +53,11 @@ spec:
               value: otlp
             # The pod command overrides the image ENTRYPOINT, so attach the agent via
             # JAVA_TOOL_OPTIONS rather than editing every command array.
+            # Force Reactor Netty onto the NIO transport: the native epoll transport in Netty
+            # 4.1.76 spins on "epoll_wait(..) failed: Function not implemented" on current
+            # EKS AL2 nodes (kernel 5.10.245), which stalls every request through this service.
             - name: JAVA_TOOL_OPTIONS
-              value: -javaagent:/application/opentelemetry-javaagent.jar
+              value: -javaagent:/application/opentelemetry-javaagent.jar -Dreactor.netty.native=false -Dio.netty.transport.noNative=true
             # Spring Boot classpaths exceed the 1024-char OTLP attribute cap, which drops
             # the whole metrics batch. Dropping the process resource provider avoids it.
             - name: OTEL_JAVA_DISABLED_RESOURCE_PROVIDERS
