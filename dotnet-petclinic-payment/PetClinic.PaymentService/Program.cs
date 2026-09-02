@@ -9,6 +9,9 @@ using Steeltoe.Discovery.Client;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using System.Diagnostics;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +35,17 @@ builder.Services.AddSingleton<IPetClinicContext, PetClinicContext>();
 
 builder.Services.AddDiscoveryClient();
 builder.Services.AddHealthChecks();
+
+// OpenTelemetry (programmatic SDK). Endpoint/protocol/service name come from the
+// standard OTEL_* environment variables set in the pod spec.
+builder.Services.AddOpenTelemetry()
+    .WithTracing(t => t
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter())
+    .WithMetrics(m => m
+        .AddAspNetCoreInstrumentation()
+        .AddOtlpExporter());
+builder.Logging.AddOpenTelemetry(o => o.AddOtlpExporter());
 
 var app = builder.Build();
 
