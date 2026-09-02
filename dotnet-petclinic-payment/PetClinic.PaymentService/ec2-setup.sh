@@ -12,6 +12,15 @@ export eureka__instance__port=8080
 export ASPNETCORE_URLS="http://+:8080"
 export ASPNETCORE_ENVIRONMENT=Development
 
+# Omni guide > "Enable auto-instrumentation" (.NET) — verbatim
+curl -sSfL https://github.com/open-telemetry/opentelemetry-dotnet-instrumentation/releases/latest/download/otel-dotnet-auto-install.sh -o install.sh && sh install.sh
+. $HOME/.otel-dotnet-auto/instrument.sh
+export OTEL_SERVICE_NAME=$service_name
+export OTEL_RESOURCE_ATTRIBUTES=service.namespace=pet-clinic
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_METRICS_EXPORTER=otlp
+export OTEL_LOGS_EXPORTER=otlp
 dotnet build --runtime linux-x64
 
 dotnet bin/Debug/net8.0/linux-x64/PetClinic.PaymentService.dll -v n

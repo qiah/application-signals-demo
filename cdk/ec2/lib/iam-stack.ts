@@ -22,6 +22,14 @@ export class IAMStack extends cdk.Stack {
     this.ec2InstanceRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonSSMManagedInstanceCore')
     );
+    // Omni guide > EC2 > "Grant permissions & provision the role": CloudWatchAgentServerPolicy
+    // (metrics + logs) and AWSXRayDaemonWriteAccess (traces) on the instance role.
+    this.ec2InstanceRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('CloudWatchAgentServerPolicy')
+    );
+    this.ec2InstanceRole.addManagedPolicy(
+      ManagedPolicy.fromAwsManagedPolicyName('AWSXRayDaemonWriteAccess')
+    );
 
     this.ec2InstanceRole.addManagedPolicy(
       ManagedPolicy.fromAwsManagedPolicyName('AmazonSQSFullAccess')

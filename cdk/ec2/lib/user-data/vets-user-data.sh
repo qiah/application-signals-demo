@@ -23,6 +23,13 @@ while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
 done
 
 # Switch to ec2-user to run commands
+# --- Omni guide > EC2 > "Deploy the collector" > "EC2 user data / Launch Template" tab (verbatim) ---
+curl -fsSL -o /tmp/amazon-cloudwatch-agent.rpm \
+  https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+rpm -Uvh /tmp/amazon-cloudwatch-agent.rpm
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -c default:otel -s
+
 sudo -iu ec2-user bash <<'EOF'
 set -x
 # Set home directory
@@ -31,6 +38,9 @@ cd ~
 # Clone the application repository
 git clone -b omni-demo https://github.com/qiah/application-signals-demo.git
 cd application-signals-demo/
+# Omni guide > "Install the OpenTelemetry SDK" (Java) — verbatim
+curl -L -o opentelemetry-javaagent.jar \
+  https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
 
 # Build the vets application
 ./mvnw clean install -pl spring-petclinic-vets-service -am -DskipTests
@@ -61,5 +71,12 @@ tmux send-keys -t vets "cd spring-petclinic-vets-service/target/" C-m
 tmux send-keys -t vets "export CONFIG_SERVER_URL=http://setup.demo.local:8888" C-m
 tmux send-keys -t vets "export DISCOVERY_SERVER_URL=http://setup.demo.local:8761/eureka" C-m
 tmux send-keys -t vets "export SPRING_PROFILES_ACTIVE=ec2" C-m
-tmux send-keys -t vets "java -jar spring-petclinic-vet*.jar" C-m
+# Omni guide > "Enable auto-instrumentation" (Java) — env + -javaagent, verbatim values
+tmux send-keys -t vets "export OTEL_SERVICE_NAME=$service_name" C-m
+tmux send-keys -t vets "export OTEL_RESOURCE_ATTRIBUTES=service.namespace=pet-clinic" C-m
+tmux send-keys -t vets "export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318" C-m
+tmux send-keys -t vets "export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" C-m
+tmux send-keys -t vets "export OTEL_METRICS_EXPORTER=otlp" C-m
+tmux send-keys -t vets "export OTEL_LOGS_EXPORTER=otlp" C-m
+tmux send-keys -t vets "java -javaagent:/home/ec2-user/application-signals-demo/opentelemetry-javaagent.jar -jar spring-petclinic-vet*.jar" C-m
 EOF

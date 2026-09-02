@@ -25,6 +25,13 @@ done
 
 
 # Switch to ec2-user to run commands
+# --- Omni guide > EC2 > "Deploy the collector" > "EC2 user data / Launch Template" tab (verbatim) ---
+curl -fsSL -o /tmp/amazon-cloudwatch-agent.rpm \
+  https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+rpm -Uvh /tmp/amazon-cloudwatch-agent.rpm
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -c default:otel -s
+
 sudo -iu ec2-user bash <<'EOF'
 set -x
 # Set home directory

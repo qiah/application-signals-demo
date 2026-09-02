@@ -24,8 +24,21 @@ export DB_SERVICE_PORT=5432
 export EUREKA_SERVER_URL=$private_setup_ip_address
 
 python3 -m pip install -r requirements.txt
+# Omni guide > "Install the OpenTelemetry SDK" (Python) — verbatim
+pip install opentelemetry-distro opentelemetry-exporter-otlp
+opentelemetry-bootstrap -a install
+# Omni guide > "Add APM metrics (RED)" > Python > Django — verbatim
+pip install cloudwatch-plugin-otel
 
 
 python3 manage.py migrate  
 python3 manage.py loaddata initial_data.json
-python3 manage.py runserver 0.0.0.0:8000 --noreload
+# Omni guide > "Enable auto-instrumentation" (Python) — verbatim
+OTEL_SERVICE_NAME=$SVC_NAME \
+OTEL_RESOURCE_ATTRIBUTES=service.namespace=pet-clinic \
+OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318 \
+OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf \
+OTEL_METRICS_EXPORTER=otlp \
+OTEL_LOGS_EXPORTER=otlp \
+OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true \
+opentelemetry-instrument python3 manage.py runserver 0.0.0.0:8000 --noreload

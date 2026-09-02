@@ -25,6 +25,13 @@ done
 
 
 # Switch to ec2-user to run commands
+# --- Omni guide > EC2 > "Deploy the collector" > "EC2 user data / Launch Template" tab (verbatim) ---
+curl -fsSL -o /tmp/amazon-cloudwatch-agent.rpm \
+  https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
+rpm -Uvh /tmp/amazon-cloudwatch-agent.rpm
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -c default:otel -s
+
 sudo -iu ec2-user bash <<'EOF'
 set -x
 # Set home directory
@@ -33,6 +40,9 @@ cd ~
 # Clone the application repository
 git clone -b omni-demo https://github.com/qiah/application-signals-demo.git
 cd application-signals-demo/
+# Omni guide > "Install the OpenTelemetry SDK" (Java) — verbatim
+curl -L -o opentelemetry-javaagent.jar \
+  https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
 
 # Build the Config Server and Discovery Server
 ./mvnw clean install -DskipTests
@@ -42,7 +52,14 @@ tmux start-server
 sleep 10
 tmux new-session -d -s config-server
 tmux send-keys -t config-server 'cd spring-petclinic-config-server/target/' C-m
-tmux send-keys -t config-server 'java -jar spring-petclinic-config-server-*.jar' C-m
+# Omni guide > "Enable auto-instrumentation" (Java) — env + -javaagent, verbatim values
+tmux send-keys -t config-server "export OTEL_SERVICE_NAME=config-server-ec2-java" C-m
+tmux send-keys -t config-server "export OTEL_RESOURCE_ATTRIBUTES=service.namespace=pet-clinic" C-m
+tmux send-keys -t config-server "export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318" C-m
+tmux send-keys -t config-server "export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" C-m
+tmux send-keys -t config-server "export OTEL_METRICS_EXPORTER=otlp" C-m
+tmux send-keys -t config-server "export OTEL_LOGS_EXPORTER=otlp" C-m
+tmux send-keys -t config-server "java -javaagent:/home/ec2-user/application-signals-demo/opentelemetry-javaagent.jar -jar spring-petclinic-config-server-*.jar" C-m
 
 # Wait for Config Server to start
 sleep 20
@@ -50,7 +67,14 @@ sleep 20
 # Start the Discovery Server in a tmux session
 tmux new-session -d -s discovery-server
 tmux send-keys -t discovery-server 'cd spring-petclinic-discovery-server/target/' C-m
-tmux send-keys -t discovery-server 'java -jar spring-petclinic-discovery-server-*.jar' C-m
+# Omni guide > "Enable auto-instrumentation" (Java) — env + -javaagent, verbatim values
+tmux send-keys -t discovery-server "export OTEL_SERVICE_NAME=discovery-server-ec2-java" C-m
+tmux send-keys -t discovery-server "export OTEL_RESOURCE_ATTRIBUTES=service.namespace=pet-clinic" C-m
+tmux send-keys -t discovery-server "export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318" C-m
+tmux send-keys -t discovery-server "export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" C-m
+tmux send-keys -t discovery-server "export OTEL_METRICS_EXPORTER=otlp" C-m
+tmux send-keys -t discovery-server "export OTEL_LOGS_EXPORTER=otlp" C-m
+tmux send-keys -t discovery-server "java -javaagent:/home/ec2-user/application-signals-demo/opentelemetry-javaagent.jar -jar spring-petclinic-discovery-server-*.jar" C-m
 
 # Wait for Config Server to start
 sleep 20
@@ -58,5 +82,12 @@ sleep 20
 # Start the Admin Server in a tmux session
 tmux new -s admin -d
 tmux send-keys -t admin 'cd spring-petclinic-admin-server/target/' C-m
-tmux send-keys -t admin 'java -jar spring-petclinic-admin-server*.jar' C-m
+# Omni guide > "Enable auto-instrumentation" (Java) — env + -javaagent, verbatim values
+tmux send-keys -t admin "export OTEL_SERVICE_NAME=admin-server-ec2-java" C-m
+tmux send-keys -t admin "export OTEL_RESOURCE_ATTRIBUTES=service.namespace=pet-clinic" C-m
+tmux send-keys -t admin "export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318" C-m
+tmux send-keys -t admin "export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf" C-m
+tmux send-keys -t admin "export OTEL_METRICS_EXPORTER=otlp" C-m
+tmux send-keys -t admin "export OTEL_LOGS_EXPORTER=otlp" C-m
+tmux send-keys -t admin "java -javaagent:/home/ec2-user/application-signals-demo/opentelemetry-javaagent.jar -jar spring-petclinic-admin-server*.jar" C-m
 EOF
