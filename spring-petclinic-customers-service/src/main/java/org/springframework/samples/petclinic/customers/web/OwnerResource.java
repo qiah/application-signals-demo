@@ -19,6 +19,8 @@
 package org.springframework.samples.petclinic.customers.web;
 
 import io.micrometer.core.annotation.Timed;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Example;
@@ -57,14 +59,17 @@ class OwnerResource {
     /**
      * Create Owner
      */
+    // Custom instrumentation — Omni guide step 3 (Java · Spring Boot: @WithSpan + Span.current()).
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @WithSpan
     public Owner createOwner(@Valid @RequestBody Owner owner) throws Exception {
 
         // don't save the owner for testing traffic
         if (owner.getFirstName().equals("random-traffic")) {
             return owner;
         }
+        Span.current().setAttribute("cart.items", 1);
         return ownerRepository.save(owner);
     }
 

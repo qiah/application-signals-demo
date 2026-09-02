@@ -6,6 +6,7 @@ import { Secret as SmSecret } from 'aws-cdk-lib/aws-secretsmanager';
 import {
     Cluster,
     Compatibility,
+    ContainerDependencyCondition,
     ContainerImage,
     FargateService,
     HealthCheck,
@@ -184,6 +185,9 @@ export class EcsClusterStack extends Stack {
             },
             assignPublicIp: false,
             desiredCount: 1,
+            // The gateway takes ~170s to become ready (JVM + OTel agent + Spring + Eureka),
+            // which exceeds the default ALB health-check grace and causes a replace loop.
+            healthCheckGracePeriod: Duration.seconds(300),
         });
 
         // Add Application Load Balancer target group
@@ -359,12 +363,43 @@ export class EcsClusterStack extends Stack {
         });
     }
 
+    // Omni ECS instrumentation: add the CloudWatch agent as a sidecar in the task, per the guide's
+    // "Deploy the collector (Fargate sidecar)" step. The app exports OTLP to localhost (awsvpc shares
+    // the network namespace) and the agent forwards to the CloudWatch OTLP endpoints. The app
+    // container must depend on the agent with condition START (the agent image has no healthcheck,
+    // so HEALTHY would hang startup).
+    private readonly OTEL_ENV: Record<string, string> = {
+        OTEL_EXPORTER_OTLP_ENDPOINT: 'http://127.0.0.1:4318',
+        OTEL_EXPORTER_OTLP_PROTOCOL: 'http/protobuf',
+        OTEL_METRICS_EXPORTER: 'otlp',
+        OTEL_LOGS_EXPORTER: 'otlp',
+        OTEL_RESOURCE_ATTRIBUTES: 'service.namespace=pet-clinic',
+    };
+
+    addCloudWatchAgentSidecar(taskDefinition: TaskDefinition, serviceName: string, mainContainer: any) {
+        const agent = taskDefinition.addContainer(`${serviceName}-cwagent`, {
+            image: ContainerImage.fromRegistry('public.ecr.aws/cloudwatch-agent/cloudwatch-agent:latest'),
+            essential: false,
+            environment: {
+                // Doc step 5, verbatim: empty otlp object.
+                CW_CONFIG_CONTENT: JSON.stringify({ opentelemetry: { collect: { otlp: {} } } }),
+            },
+            logging: LogDrivers.awsLogs({
+                streamPrefix: 'cwagent',
+                logGroup: this.logStack.createLogGroup(`${serviceName}-cwagent`),
+            }),
+        });
+        mainContainer.addContainerDependencies({
+            container: agent,
+            condition: ContainerDependencyCondition.START,
+        });
+    }
+
     createJavaTaskDefinition(serviceName: string, config: ServiceTaskDefinitionConfig) {
         const { image, environmentArgs, port } = config;
 
         const logGroup = this.logStack.createLogGroup(serviceName);
 
-        // Create ECS task definition
         const taskDefinition = new TaskDefinition(this, `${serviceName}-task`, {
             cpu: '256',
             memoryMiB: '512',
@@ -383,6 +418,10 @@ export class EcsClusterStack extends Stack {
             essential: true,
             environment: {
                 SPRING_PROFILES_ACTIVE: 'ecs',
+                OTEL_SERVICE_NAME: serviceName,
+                // Attach the OTel Java agent (baked into the image) without editing the entrypoint.
+                JAVA_TOOL_OPTIONS: '-javaagent:/application/opentelemetry-javaagent.jar',
+                ...this.OTEL_ENV,
                 ...environmentArgs,
             },
             logging: LogDrivers.awsLogs({
@@ -397,6 +436,8 @@ export class EcsClusterStack extends Stack {
             protocol: Protocol.TCP,
         });
 
+        this.addCloudWatchAgentSidecar(taskDefinition, serviceName, mainContainer);
+
         return taskDefinition;
     }
 
@@ -405,7 +446,6 @@ export class EcsClusterStack extends Stack {
 
         const logGroup = this.logStack.createLogGroup(serviceName);
 
-        // Create ECS task definition
         const taskDefinition = new TaskDefinition(this, `${serviceName}-task`, {
             cpu: '256',
             memoryMiB: '512',
@@ -433,13 +473,22 @@ export class EcsClusterStack extends Stack {
                 DATABASE_PROFILE: 'postgresql',
                 DB_SERVICE_HOST: this.dbInstanceEndpointAddress,
                 DB_SERVICE_PORT: '5432',
+                OTEL_SERVICE_NAME: serviceName,
+                OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: 'true',
+                ...this.OTEL_ENV,
                 ...environmentArgs,
             },
             logging: LogDrivers.awsLogs({
                 streamPrefix: 'ecs',
                 logGroup: logGroup,
             }),
-            command,
+            // Run the app under the OTel Python auto-instrumentation launcher (the distro is baked
+            // into the image). Only the runserver invocation is wrapped, not migrate/loaddata.
+            command: command
+                ? command.map((c) =>
+                      c.replace(/(python manage\.py runserver)/g, 'opentelemetry-instrument $1'),
+                  )
+                : command,
             healthCheck,
         });
 
@@ -448,6 +497,8 @@ export class EcsClusterStack extends Stack {
             containerPort: port,
             protocol: Protocol.TCP,
         });
+
+        this.addCloudWatchAgentSidecar(taskDefinition, serviceName, mainContainer);
 
         return taskDefinition;
     }

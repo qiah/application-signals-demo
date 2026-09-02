@@ -26,6 +26,10 @@ export class IamRolesStack extends Stack {
             'AmazonS3FullAccess',
             'AmazonBedrockFullAccess',
             'AmazonKinesisFullAccess',
+            // Omni ECS instrumentation: the CloudWatch agent sidecar assumes the task role,
+            // so it needs the agent + X-Ray write permissions (per the guide's collector step).
+            'CloudWatchAgentServerPolicy',
+            'AWSXRayDaemonWriteAccess',
         ];
 
         taskRolePolicies.forEach((policy) => {

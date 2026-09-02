@@ -13,11 +13,9 @@ RUN wget -O dockerize.tar.gz https://github.com/jwilder/dockerize/releases/downl
 RUN tar xzf dockerize.tar.gz
 RUN chmod +x dockerize
 
-# OpenTelemetry Java agent. Pinned rather than using the guide's
-# .../releases/latest/download/... URL so image builds are reproducible.
-ARG OTEL_JAVAAGENT_VERSION=2.11.0
+# OpenTelemetry Java agent — doc step 1 (verbatim): fetch from releases/latest.
 RUN wget -O opentelemetry-javaagent.jar \
-      https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/download/v${OTEL_JAVAAGENT_VERSION}/opentelemetry-javaagent.jar
+      https://github.com/open-telemetry/opentelemetry-java-instrumentation/releases/latest/download/opentelemetry-javaagent.jar
 
 
 FROM public.ecr.aws/amazoncorretto/amazoncorretto:11

@@ -4,6 +4,9 @@ from .models import Insurance, PetInsurance
 from .serializers import InsuranceSerializer, PetInsuranceSerializer
 from .rest import generate_billings
 import logging
+# Custom instrumentation — Omni guide step 3 (Python · Django snippet).
+from opentelemetry import trace, metrics
+orders = metrics.get_meter("checkout").create_counter("orders.placed")
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +30,8 @@ class PetInsuranceViewSet(viewsets.ModelViewSet):
     lookup_field = 'pet_id'
 
     def create(self, request, *args, **kwargs):
+        trace.get_current_span().set_attribute("cart.items", 3)
+        orders.add(1, {"currency": "USD"})
         owner_id = request.data.get('owner_id')
         pet_id = request.data.get('pet_id')
         logger.info(f"PetInsuranceViewSet.create() called - Creating pet insurance for owner_id: {owner_id}, pet_id: {pet_id}")

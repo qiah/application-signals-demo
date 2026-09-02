@@ -190,6 +190,18 @@
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- Omni guide step 3 (@WithSpan + Span.current()) needs these to compile;
+         the doc's Java step 1 only downloads the agent jar and omits both. -->
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-api</artifactId>
+      <version>1.40.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-instrumentation-annotations</artifactId>
+      <version>2.6.0</version>
+    </dependency>
   </dependencies>
 
   <profiles>
