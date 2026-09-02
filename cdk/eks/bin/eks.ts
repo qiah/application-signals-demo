@@ -38,6 +38,7 @@ const eksStack = new EksStack(app, 'AppSignalsEksClusterStack', {
   eksNodeGroupRoleProp: iamStack.eksNodeGroupRoleProp,
   ebsCsiAddonRoleProp: iamStack.ebsCsiAddonRoleProp,
   sampleAppRoleProp: iamStack.sampleAppRoleProp,
+  cloudwatchAddonRoleProp: iamStack.cloudwatchAddonRoleProp,
   rdsClusterEndpoint: rdsStack.clusterEndpoint,
   rdsSecurityGroupId: networkStack.rdsSecurityGroupId,
   rumIdentityPoolId: rumStack.identityPoolId,

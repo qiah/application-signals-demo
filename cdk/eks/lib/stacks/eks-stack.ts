@@ -15,6 +15,7 @@ interface EksStackProps extends StackProps {
   eksNodeGroupRoleProp: RoleProps,
   ebsCsiAddonRoleProp: RoleProps,
   sampleAppRoleProp: RoleProps,
+  cloudwatchAddonRoleProp: RoleProps,
   rdsClusterEndpoint: string,
   rdsSecurityGroupId: string,
   rumIdentityPoolId: string,
@@ -42,12 +43,14 @@ export class EksStack extends Stack {
   private readonly eksNodeGroupRole: Role;
   private readonly ebsCsiDriverAddonRole: Role;
   private readonly sampleAppRole: Role;
+  private readonly cloudwatchAddonRole: Role;
   private readonly rumIdentityPoolId: string;
   private readonly rumAppMonitorId: string;
 
   // Constructs generated in this stack
   private readonly cluster: Cluster;
   private readonly ebsCsiDriverAddon: CfnAddon;
+  private readonly cloudwatchAddon: CfnAddon;
   private readonly visitsServiceServiceAccount : ServiceAccount;
   private readonly sampleAppNamespace: KubernetesManifest;
   private readonly nginxIngressNamespace: KubernetesManifest;
@@ -61,7 +64,7 @@ export class EksStack extends Stack {
   constructor(scope: Construct, id: string, props: EksStackProps) {
     super(scope, id, props);
 
-    const { vpc, eksClusterRoleProp, eksNodeGroupRoleProp, ebsCsiAddonRoleProp, sampleAppRoleProp, rdsClusterEndpoint, rdsSecurityGroupId, rumIdentityPoolId, rumAppMonitorId } = props;
+    const { vpc, eksClusterRoleProp, eksNodeGroupRoleProp, ebsCsiAddonRoleProp, sampleAppRoleProp, cloudwatchAddonRoleProp, rdsClusterEndpoint, rdsSecurityGroupId, rumIdentityPoolId, rumAppMonitorId } = props;
     this.vpc = vpc;
     this.rdsClusterEndpoint = rdsClusterEndpoint;
     this.rumIdentityPoolId = rumIdentityPoolId;
@@ -77,11 +80,15 @@ export class EksStack extends Stack {
     this.eksNodeGroupRole = new Role(this, 'EksNodeGroupRole', eksNodeGroupRoleProp);
     this.ebsCsiDriverAddonRole = new Role(this, 'EbsCsiDriverAddonRole', ebsCsiAddonRoleProp);
     this.sampleAppRole = new Role(this, 'SampleAppRole', sampleAppRoleProp);
+    this.cloudwatchAddonRole = new Role(this, 'CloudwatchAddonRole', cloudwatchAddonRoleProp);
 
     // Create EKS Cluster
     this.cluster = this.createEksCluster();
     // Add the Ebs Csi Driver Addon
     this.ebsCsiDriverAddon = this.addEbsCsiDriverAddon();
+    // Add the CloudWatch Observability add-on. This is the OTLP collector the app
+    // pods export to (cloudwatch-agent.amazon-cloudwatch.svc.cluster.local:4318).
+    this.cloudwatchAddon = this.addCloudwatchAddon();
     // Create pet-clinic namespace
     this.sampleAppNamespace = this.createNamespace(this.SAMPLE_APP_NAMESPACE);
     // Create ingress-nginx namespace
@@ -93,8 +100,9 @@ export class EksStack extends Stack {
     this.deployManifests(this.dbManifestPath, [this.ebsCsiDriverAddon, this.visitsServiceServiceAccount]);
     // Deploy the manifests for mongodb. Mongodb manifest relies on the ebs csi driver add-on
     this.deployManifests(this.mongodbManifestPath, [this.ebsCsiDriverAddon, this.visitsServiceServiceAccount]);
-    // Deploy the sample app.
-    this.deployManifests(this.sampleAppManifestPath, [this.visitsServiceServiceAccount]);
+    // Deploy the sample app. Depends on the CloudWatch add-on so the collector Service
+    // exists before the instrumented pods start exporting OTLP to it.
+    this.deployManifests(this.sampleAppManifestPath, [this.visitsServiceServiceAccount, this.cloudwatchAddon]);
     // Deploy the ngnix ingress. 
     this.nginxIngressManifests = this.deployManifests(this.nginxIngressManifestPath, [this.nginxIngressNamespace]);
     // Get the ingress external ip
@@ -144,11 +152,72 @@ export class EksStack extends Stack {
     this.addFederatedPrincipal(this.ebsCsiDriverAddonRole, 'EbsCsiDriverAddonRole', false);
 
     const addon = new CfnAddon(this, 'ebsCsiAddon', {
-      addonName: 'aws-ebs-csi-driver', 
+      addonName: 'aws-ebs-csi-driver',
       clusterName: this.cluster.clusterName,
-      serviceAccountRoleArn: this.ebsCsiDriverAddonRole.roleArn, 
-      resolveConflicts: 'OVERWRITE', 
+      serviceAccountRoleArn: this.ebsCsiDriverAddonRole.roleArn,
+      resolveConflicts: 'OVERWRITE',
     });
+    return addon;
+  }
+
+  addCloudwatchAddon() {
+    // Trust the CloudWatch agent's service account via the cluster OIDC provider (IRSA).
+    const openIdConnectProviderIssuer = this.cluster.openIdConnectProvider.openIdConnectProviderIssuer;
+    const stringCondition = new CfnJson(this, `CloudwatchAddonOidcCondition`, {
+      value: {
+        [`${openIdConnectProviderIssuer}:aud`]: 'sts.amazonaws.com',
+      },
+    });
+
+    const federatedPrincipal = new FederatedPrincipal(
+      this.cluster.openIdConnectProvider.openIdConnectProviderArn,
+      {
+        'StringEquals': stringCondition,
+      },
+      'sts:AssumeRoleWithWebIdentity'
+    );
+
+    this.cloudwatchAddonRole.assumeRolePolicy?.addStatements(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        principals: [federatedPrincipal],
+        actions: ['sts:AssumeRoleWithWebIdentity'],
+      })
+    );
+
+    // configurationValues for the amazon-cloudwatch-observability add-on. The CloudWatch
+    // agent JSON goes under agent.config (per the add-on's configuration schema). For Omni
+    // the agent must (a) expose OTLP receivers on the default ports so the app pods can
+    // export to it, and (b) keep collecting Container Insights. Passing OTLP alone REPLACES
+    // the add-on defaults and silently drops Container Insights, so both are set together.
+    const configurationValues = JSON.stringify({
+      agent: {
+        config: {
+          logs: {
+            metrics_collected: {
+              kubernetes: { enhanced_container_insights: true },
+            },
+          },
+          opentelemetry: {
+            collect: {
+              otlp: {
+                grpc_endpoint: '0.0.0.0:4317',
+                http_endpoint: '0.0.0.0:4318',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const addon = new CfnAddon(this, 'CloudWatchAddonAddon', {
+      addonName: 'amazon-cloudwatch-observability',
+      clusterName: this.cluster.clusterName,
+      serviceAccountRoleArn: this.cloudwatchAddonRole.roleArn,
+      resolveConflicts: 'OVERWRITE',
+      configurationValues,
+    });
+
     return addon;
   }
 

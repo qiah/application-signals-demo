@@ -7,6 +7,7 @@ export class IAMStack extends Stack {
   public readonly eksNodeGroupRoleProp: RoleProps ;
   public readonly ebsCsiAddonRoleProp: RoleProps;
   public readonly sampleAppRoleProp: RoleProps;
+  public readonly cloudwatchAddonRoleProp: RoleProps;
   public readonly syntheticCanaryRoleProp: RoleProps;
 
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -43,6 +44,17 @@ export class IAMStack extends Stack {
       assumedBy: new ServicePrincipal('eks.amazonaws.com'),
       managedPolicies: [
         ManagedPolicy.fromAwsManagedPolicyName('service-role/AmazonEBSCSIDriverPolicy'),
+      ],
+    };
+
+    // Role prop for the amazon-cloudwatch-observability add-on's CloudWatch agent
+    // service account. CloudWatchAgentServerPolicy lets the agent publish metrics/logs
+    // and (with X-Ray Transaction Search enabled) trace segments.
+    this.cloudwatchAddonRoleProp = {
+      roleName: 'PetClinicCloudwatchAddonRole',
+      assumedBy: new ServicePrincipal('eks.amazonaws.com'),
+      managedPolicies: [
+        ManagedPolicy.fromAwsManagedPolicyName('CloudWatchAgentServerPolicy'),
       ],
     };
 
