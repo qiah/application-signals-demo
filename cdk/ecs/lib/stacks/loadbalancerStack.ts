@@ -40,13 +40,18 @@ export class LoadBalancerStack extends Stack {
             port: 8080,
             protocol: ApplicationProtocol.HTTP,
             targetType: TargetType.IP,
+            // Health-check the gateway's actuator endpoint (returns 200 {"status":"UP"}),
+            // not '/', which Spring Cloud Gateway has no route for. Fast interval with a
+            // tolerant unhealthy threshold; the ~155s instrumented boot is covered by the
+            // service's healthCheckGracePeriod (300s), so tasks are not killed mid-startup.
             healthCheck: {
-                path: '/',
+                path: '/actuator/health',
                 protocol: Protocol.HTTP,
-                healthyThresholdCount: 5,
-                unhealthyThresholdCount: 2,
-                interval: Duration.seconds(240),
-                timeout: Duration.seconds(60),
+                healthyHttpCodes: '200',
+                healthyThresholdCount: 3,
+                unhealthyThresholdCount: 5,
+                interval: Duration.seconds(30),
+                timeout: Duration.seconds(10),
             },
         });
 
