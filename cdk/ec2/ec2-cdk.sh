@@ -7,6 +7,7 @@
 # Example to only synth: ./cdk-deploy.sh synth
 
 ACTION=$1
+DESTROY_ON_FAIL=${2:-true}  # pass "false" to keep stacks for debugging
 
 # Check for action parameter
 if [[ -z "$ACTION" ]]; then
@@ -41,8 +42,11 @@ if [[ "$ACTION" == "deploy" ]]; then
   if npx cdk deploy --all --require-approval never; then
     echo "Deployment successful for all stacks in the app"
   else
-    echo "Deployment failed. Attempting to clean up resources by destroying all stacks..."
-    npx cdk destroy --all --force --verbose
+    echo "Deployment failed."
+    if [[ "$DESTROY_ON_FAIL" == "true" ]]; then
+      echo "Destroying all stacks (pass --destroy-on-fail=false to keep them for debugging)..."
+      npx cdk destroy --all --force --verbose
+    fi
     exit 1
   fi
 elif [[ "$ACTION" == "destroy" ]]; then

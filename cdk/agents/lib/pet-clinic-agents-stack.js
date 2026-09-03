@@ -1,6 +1,7 @@
 const { Stack, RemovalPolicy } = require('aws-cdk-lib');
 const ecrAssets = require('aws-cdk-lib/aws-ecr-assets');
 const iam = require('aws-cdk-lib/aws-iam');
+const { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } = require('aws-cdk-lib/custom-resources');
 const { BedrockAgentCoreDeployer } = require('./bedrock-agentcore-deployer');
 
 /**
@@ -16,6 +17,41 @@ class PetClinicAgentsStack extends Stack {
 
     const account = this.account;
     const region = this.region;
+
+
+    // X-Ray Transaction Search (OTLP spans are rejected with HTTP 400 unless the trace segment destination is
+    // CloudWatch Logs). Done here as custom resources so it does not depend on the operator's AWS CLI version.
+    const spansPolicy = new AwsCustomResource(this, 'OmniXRayToLogsPolicy', {
+      onCreate: {
+        service: 'cloudwatch-logs', action: 'PutResourcePolicy',
+        parameters: {
+          policyName: 'XRayToLogsIngestion-omni',
+          policyDocument: JSON.stringify({ Version: '2012-10-17', Statement: [
+            { Sid: 'SpansFromXray', Effect: 'Allow', Principal: { Service: 'xray.amazonaws.com' },
+              Action: ['logs:PutLogEvents', 'logs:CreateLogStream'],
+              Resource: `arn:aws:logs:${this.region}:${this.account}:log-group:aws/spans:*`,
+              Condition: { StringEquals: { 'aws:SourceAccount': this.account }, ArnEquals: { 'aws:SourceArn': `arn:aws:xray:${this.region}:${this.account}:*` } } },
+            { Sid: 'AppSignalsEmfFromXray', Effect: 'Allow', Principal: { Service: 'xray.amazonaws.com' },
+              Action: ['logs:PutLogEvents', 'logs:CreateLogStream'],
+              Resource: `arn:aws:logs:${this.region}:${this.account}:log-group:/aws/application-signals/data:*`,
+              Condition: { StringEquals: { 'aws:SourceAccount': this.account }, ArnEquals: { 'aws:SourceArn': `arn:aws:xray:${this.region}:${this.account}:*` } } },
+          ] }),
+        },
+        physicalResourceId: PhysicalResourceId.of('omni-xray-to-logs-policy'),
+      },
+      installLatestAwsSdk: true,
+      policy: AwsCustomResourcePolicy.fromStatements([new iam.PolicyStatement({ actions: ['logs:PutResourcePolicy'], resources: ['*'] })]),
+    });
+    const traceDestination = new AwsCustomResource(this, 'OmniTraceDestination', {
+      onCreate: {
+        service: 'xray', action: 'UpdateTraceSegmentDestination', parameters: { Destination: 'CloudWatchLogs' },
+        physicalResourceId: PhysicalResourceId.of('omni-trace-destination'),
+        ignoreErrorCodesMatching: 'InvalidRequestException|ConflictException',
+      },
+      installLatestAwsSdk: true,
+      policy: AwsCustomResourcePolicy.fromStatements([new iam.PolicyStatement({ actions: ['xray:UpdateTraceSegmentDestination', 'xray:GetTraceSegmentDestination', 'logs:PutRetentionPolicy', 'logs:CreateLogGroup', 'logs:DescribeLogGroups'], resources: ['*'] })]),
+    });
+    traceDestination.node.addDependency(spansPolicy);
 
     // Create Bedrock AgentCore execution role:
     // See: https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/runtime-permissions.html
