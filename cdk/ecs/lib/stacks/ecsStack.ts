@@ -77,9 +77,6 @@ export class EcsClusterStack extends Stack {
         this.cluster = new Cluster(this, 'EcsCluster', {
             vpc: props.vpc,
             clusterName: this.CLUSTER_NAME,
-            // Infrastructure metrics on ECS come from the cluster's Container Insights setting, not from the
-            // CloudWatch agent sidecar (whose OTLP-only config forwards app telemetry only).
-            containerInsights: true,
         });
 
         this.ecrImagePrefix = `${this.account}.dkr.ecr.${this.region}.amazonaws.com`; // retrive ECR image from the private repository
