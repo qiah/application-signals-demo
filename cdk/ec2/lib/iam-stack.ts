@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { Role, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
+import { CfnTelemetryRule } from 'aws-cdk-lib/aws-observabilityadmin';
 
 export class IAMStack extends cdk.Stack {
   // Expose the IAM Role for use in other stacks
@@ -64,6 +65,23 @@ export class IAMStack extends cdk.Stack {
       resources: ['arn:aws:secretsmanager:*:*:secret:PetClinicDBCredentials-*']
     });
     this.ec2InstanceRole.addToPolicy(secretAccessPolicy);
+
+    // Omni guide > EC2 > "Enable EC2 host metrics with a telemetry rule" > CDK-TS case, with two
+    // corrections the service forced (the guide's snippet is rejected as written):
+    //  - allowFieldUpdates removed: only supported for AWS::EC2::VPC (API: "AllowFieldUpdates is not
+    //    supported for resource type: AWS::EC2::Instance").
+    //  - selectionCriteria uses the service grammar ResourceTags IN ({"TagKey":..,"TagValue":..});
+    //    the guide's tags['omni:monitor'] == 'true' fails with "Invalid resource selection criteria".
+    // Prerequisite the guide omits: telemetry evaluation must be enabled on the account first
+    // (observabilityadmin StartTelemetryEvaluation), otherwise CREATE fails.
+    new CfnTelemetryRule(this, 'omniec2detailedmetrics', {
+      ruleName: 'omni-ec2-detailed-metrics',
+      rule: {
+        resourceType: 'AWS::EC2::Instance',
+        telemetryType: 'Metrics',
+        selectionCriteria: 'ResourceTags IN ({"TagKey":"omni:monitor","TagValue":"true"})',
+      },
+    });
 
     // Output the IAM Role ARN
     new cdk.CfnOutput(this, 'EC2InstanceRoleARN', {

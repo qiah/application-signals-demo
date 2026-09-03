@@ -92,6 +92,8 @@ export class ComputeStack extends cdk.Stack {
 
 
         // Save the visits ASG for potential use in other stacks
+        // Omni guide telemetry rule selects instances tagged omni:monitor=true (propagates to ASG instances).
+        cdk.Tags.of(asg).add('omni:monitor', 'true');
         if (service.name === 'visits') {
           this.visitsAsg = asg;
         }
@@ -116,6 +118,8 @@ export class ComputeStack extends cdk.Stack {
           vpcSubnets,
         });
 
+        // Omni guide telemetry rule selects instances tagged omni:monitor=true.
+        cdk.Tags.of(instance).add('omni:monitor', 'true');
         if (service.name === 'pet-clinic-frontend') {
           this.frontendInstance = instance;
         }
