@@ -58,6 +58,12 @@ class PetClinicAgentsStack extends Stack {
               ],
               resources: ['*']
             }),
+            // Omni guide > AgentCore > "Enable trace delivery" > IAM for AgentCore (CDK-TS case, verbatim actions)
+            new iam.PolicyStatement({
+              actions: ['xray:GetSamplingRules', 'xray:GetSamplingTargets',
+                        'xray:PutTelemetryRecords', 'xray:PutTraceSegments'],
+              resources: ['*'],
+            }),
           ]
         })
       }
@@ -71,6 +77,16 @@ class PetClinicAgentsStack extends Stack {
       directory: '../../pet_clinic_ai_agents/primary_agent'
     });
 
+    // Omni guide > AgentCore > "Enable trace delivery" > CDK (TypeScript) environmentVariables, verbatim values.
+    // OTEL_SERVICE_NAME must be {RuntimeName}.{EndpointName}; the runtime endpoint is DEFAULT.
+    const omniObservabilityEnv = (runtimeName) => ({
+      AGENT_OBSERVABILITY_ENABLED: 'true',                 // raw IaC: set it (the toolkit sets it for you)
+      AWS_GENAI_CONTENT_EXTRACTION_OPT_OUT: 'true',        // non-prod: keep prompt content in span attrs
+      OTEL_SERVICE_NAME: `${runtimeName}.DEFAULT`,         // {RuntimeName}.{EndpointName}
+      OTEL_TRACES_EXPORTER: 'otlp',                        // REQUIRED on a raw CfnRuntime
+      OTEL_RESOURCE_ATTRIBUTES: 'deployment.environment.name=demo',
+      OTEL_ATTRIBUTE_VALUE_LENGTH_LIMIT: '65536',          // large prompts truncate otherwise
+    });
     // Deploy nutrition agent with optional environment variable
     const nutritionAgentName = 'nutrition_agent';
     const nutritionAgentProps = {
@@ -78,7 +94,7 @@ class PetClinicAgentsStack extends Stack {
       ImageUri: nutritionAgentImage.imageUri,
       ExecutionRole: agentCoreRole.roleArn,
       Entrypoint: 'nutrition_agent.py',
-      EnvironmentVariables: {}
+      EnvironmentVariables: { ...omniObservabilityEnv(nutritionAgentName) }
     };
     
     if (props?.nutritionServiceUrl) {
@@ -95,7 +111,8 @@ class PetClinicAgentsStack extends Stack {
       ExecutionRole: agentCoreRole.roleArn,
       Entrypoint: 'pet_clinic_agent.py',
       EnvironmentVariables: {
-        NUTRITION_AGENT_ARN: nutritionAgent.agentArn
+        NUTRITION_AGENT_ARN: nutritionAgent.agentArn,
+        ...omniObservabilityEnv(petClinicAgentName)
       }
     });
 

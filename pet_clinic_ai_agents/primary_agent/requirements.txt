@@ -4,3 +4,7 @@ uv
 boto3
 bedrock-agentcore
 bedrock-agentcore-starter-toolkit
+# Omni guide > AgentCore > "Add ADOT + OpenInference" (verbatim pip line)
+aws-opentelemetry-distro>=0.18.0
+# OpenInference instrumentor for Strands (package name not stated in the guide; required by its wiring import)
+openinference-instrumentation-strands-agents

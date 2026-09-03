@@ -8,7 +8,16 @@ from strands.models import BedrockModel
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from botocore.exceptions import ClientError
 
-BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+# Omni guide > AgentCore > "Wire your agent framework" > Strands (Python) — verbatim
+from opentelemetry import trace
+from strands.telemetry import StrandsTelemetry
+from openinference.instrumentation.strands_agents import StrandsAgentsToOpenInferenceProcessor
+current = trace.get_tracer_provider()          # ADOT's global provider on AWS
+StrandsTelemetry(tracer_provider=current)
+current.add_span_processor(StrandsAgentsToOpenInferenceProcessor())
+
+
+BEDROCK_MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 
 @tool
 def get_clinic_hours():
