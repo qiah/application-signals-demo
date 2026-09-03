@@ -14,19 +14,19 @@ This code for sample application is intended for demonstration purposes only. It
 
 ## Option 1: Using AWS CodeBuild (Recommended - No Local Setup Required)
 * AWS CLI 2.x is installed. For more information about installing the AWS CLI, see [Install or update the latest version of the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
-* AWS CDK >= v2.1024.0 is installed - https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_install
+* AWS CDK CLI: the EC2 and Agents apps pin their own CLI (`aws-cdk` devDependency, run via `npx cdk`), so no global install is needed for them. Other apps: AWS CDK >= v2.1139.0 is installed - https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_install
 * Node.js >= v18.0.0 is installed.
 
 ## Option 2: Local Build Environment
 * A Linux machine with x86-64 (AMD64) architecture is required for building Docker images for the sample application.
-* Docker is installed and running on the machine.
+* Docker is installed and running on the machine. Finch works too: `export CDK_DOCKER=finch` before running the scripts.
 * AWS CLI 2.x is installed. For more information about installing the AWS CLI, see [Install or update the latest version of the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html).
 
 ## Additional Prerequisites for Deployment
 * kubectl is installed - https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html
 * eksctl is installed - https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html
 * jq is installed - https://jqlang.github.io/jq/download/
-* AWS CDK >= v2.1024.0 is installed - https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_install
+* AWS CDK CLI: the EC2 and Agents apps pin their own CLI (`aws-cdk` devDependency, run via `npx cdk`), so no global install is needed for them. Other apps: AWS CDK >= v2.1139.0 is installed - https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html#getting_started_install
 * Node.js >= v18.0.0 is installed.
 * [Optional] If you plan to install the infrastructure resources using Terraform, terraform cli is required. https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
 * [Optional] If you want to try out the AWS Bedrock/GenAI parts of the demo, enable Amazon Titan, Anthropic Claude, Meta Llama foundation models by following the instructions in https://docs.aws.amazon.com/bedrock/latest/userguide/model-access.html

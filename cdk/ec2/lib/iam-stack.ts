@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { Role, ServicePrincipal, ManagedPolicy, Policy, PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
 import { CfnTelemetryRule } from 'aws-cdk-lib/aws-observabilityadmin';
+import { AwsCustomResource, AwsCustomResourcePolicy, PhysicalResourceId } from 'aws-cdk-lib/custom-resources';
 
 export class IAMStack extends cdk.Stack {
   // Expose the IAM Role for use in other stacks
@@ -74,7 +75,24 @@ export class IAMStack extends cdk.Stack {
     //    the guide's tags['omni:monitor'] == 'true' fails with "Invalid resource selection criteria".
     // Prerequisite the guide omits: telemetry evaluation must be enabled on the account first
     // (observabilityadmin StartTelemetryEvaluation), otherwise CREATE fails.
-    new CfnTelemetryRule(this, 'omniec2detailedmetrics', {
+    // Prerequisite the guide omits, automated: telemetry rules require telemetry evaluation to be enabled on the
+    // account (observabilityadmin:StartTelemetryEvaluation). Idempotent; CREATE fails without it.
+    const telemetryEvaluation = new AwsCustomResource(this, 'OmniTelemetryEvaluation', {
+      onCreate: {
+        service: 'observabilityadmin',
+        action: 'StartTelemetryEvaluation',
+        parameters: {},
+        physicalResourceId: PhysicalResourceId.of('omni-telemetry-evaluation'),
+        ignoreErrorCodesMatching: 'ConflictException|ValidationException',
+      },
+      installLatestAwsSdk: true,
+      policy: AwsCustomResourcePolicy.fromStatements([
+        new PolicyStatement({ actions: ['observabilityadmin:StartTelemetryEvaluation', 'observabilityadmin:GetTelemetryEvaluationStatus'], resources: ['*'] }),
+        new PolicyStatement({ actions: ['iam:CreateServiceLinkedRole'], resources: ['*'] }),
+      ]),
+    });
+
+    const telemetryRule = new CfnTelemetryRule(this, 'omniec2detailedmetrics', {
       ruleName: 'omni-ec2-detailed-metrics',
       rule: {
         resourceType: 'AWS::EC2::Instance',
@@ -82,6 +100,7 @@ export class IAMStack extends cdk.Stack {
         selectionCriteria: 'ResourceTags IN ({"TagKey":"omni:monitor","TagValue":"true"})',
       },
     });
+    telemetryRule.node.addDependency(telemetryEvaluation);
 
     // Output the IAM Role ARN
     new cdk.CfnOutput(this, 'EC2InstanceRoleARN', {

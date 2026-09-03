@@ -23,10 +23,12 @@ while [ $success = false ] && [ $attempt_num -le $max_attempts ]; do
 done
 
 # Switch to ec2-user to run commands
-# --- Omni guide > EC2 > "Deploy the collector" > "EC2 user data / Launch Template" tab (verbatim) ---
+# --- Omni guide > EC2 > "Deploy the collector" > "EC2 user data / Launch Template" tab ---
+# Deviation: the guide's bare `rpm -Uvh` races the boot-time RPM lock (3/8 hosts came up with no agent) and is
+# not idempotent; `dnf install` waits for the lock and is safe to re-run.
 curl -fsSL -o /tmp/amazon-cloudwatch-agent.rpm \
   https://amazoncloudwatch-agent.s3.amazonaws.com/amazon_linux/amd64/latest/amazon-cloudwatch-agent.rpm
-rpm -Uvh /tmp/amazon-cloudwatch-agent.rpm
+dnf install -y /tmp/amazon-cloudwatch-agent.rpm
 /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
   -a fetch-config -c default:otel -s
 

@@ -37,7 +37,8 @@ export AWS_REGION=$REGION
 export AWS_DEFAULT_REGION=$REGION
 
 # Navigate to CDK agents directory
-cd "$(dirname "$0")/../../cdk/agents"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR/../../cdk/agents"
 
 # Unset DOCKER_HOST to avoid Docker connection issues
 unset DOCKER_HOST
@@ -45,6 +46,8 @@ unset DOCKER_HOST
 case $OPERATION in
   deploy)
     echo "Deploying Pet Clinic Agents..."
+    # Enable X-Ray Transaction Search (idempotent) so OTLP spans are not rejected.
+    bash "$SCRIPT_DIR/../enable-transaction-search.sh" "$REGION"
     if [[ -z "$PET_CLINIC_URL" ]]; then
       echo "Auto-discovering Pet Clinic URL from EKS cluster..."
       if ! command -v kubectl &> /dev/null; then
@@ -68,9 +71,9 @@ case $OPERATION in
       export PET_CLINIC_URL
     fi
     npm install
-    cdk bootstrap --region $REGION
-    cdk synth
-    cdk deploy --all --require-approval never
+    npx cdk bootstrap --region $REGION
+    npx cdk synth
+    npx cdk deploy --all --require-approval never
     echo "✅ Pet Clinic Agents deployed successfully!"
     echo ""
     echo "Agent ARNs:"
@@ -79,7 +82,7 @@ case $OPERATION in
     ;;
   delete)
     echo "Destroying Pet Clinic Agents..."
-    cdk destroy --all --force
+    npx cdk destroy --all --force
     echo "✅ Pet Clinic Agents destroyed successfully!"
     ;;
   *)

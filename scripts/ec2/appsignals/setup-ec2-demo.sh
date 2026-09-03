@@ -54,5 +54,7 @@ function delete_resources() {
 if [ "$OPERATION" == "delete" ]; then
   delete_resources
 else
+  # Enable X-Ray Transaction Search (idempotent) so OTLP spans are not rejected.
+  bash "$(dirname "$0")/../../../scripts/enable-transaction-search.sh" "$REGION"
   run_cdk deploy
 fi

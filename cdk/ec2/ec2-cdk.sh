@@ -20,11 +20,11 @@ fi
 if [[ "$ACTION" == "synth" || "$ACTION" == "deploy" ]]; then
   npm install
   echo "Running CDK bootstrap"
-  cdk bootstrap
+  npx cdk bootstrap
 
   rm -rf cdk.out
   echo "Running CDK synth for all stacks..."
-  if cdk synth; then
+  if npx cdk synth; then
     echo "CDK synth successful!"
     if [[ "$ACTION" == "synth" ]]; then
       exit 0
@@ -38,16 +38,16 @@ fi
 # Deploy or destroy all stacks in the app
 if [[ "$ACTION" == "deploy" ]]; then
   echo "Starting CDK deployment for all stacks in the app"
-  if cdk deploy --all --require-approval never; then
+  if npx cdk deploy --all --require-approval never; then
     echo "Deployment successful for all stacks in the app"
   else
     echo "Deployment failed. Attempting to clean up resources by destroying all stacks..."
-    cdk destroy --all --force --verbose
+    npx cdk destroy --all --force --verbose
     exit 1
   fi
 elif [[ "$ACTION" == "destroy" ]]; then
   echo "Starting CDK destroy for all stacks in the app"
-  cdk destroy --all --force --verbose
+  npx cdk destroy --all --force --verbose
   echo "Destroy complete for all stacks in the app"
 else
   echo "Invalid action: $ACTION. Please use 'synth', 'deploy', or 'destroy'."
