@@ -4,6 +4,7 @@ set -ex
 # Default values
 DEFAULT_REGION="us-east-1"
 OPERATION="create"
+DESTROY_ON_FAIL="true"  # --destroy-on-fail=false keeps failed stacks for debugging
 
 # Read command line arguments
 for i in "$@"; do
@@ -14,6 +15,10 @@ for i in "$@"; do
     ;;
   --region=*)
     REGION="${i#*=}"
+    shift # past argument=value
+    ;;
+  --destroy-on-fail=*)
+    DESTROY_ON_FAIL="${i#*=}"
     shift # past argument=value
     ;;
   *)
@@ -31,7 +36,7 @@ function run_cdk() {
   echo "Running CDK..."
   # jump to the cdk folder, run the cdk commands, and then jump back to current folder
   pushd ../../../cdk/ec2 >/dev/null
-  ./ec2-cdk.sh $1
+  ./ec2-cdk.sh $1 $DESTROY_ON_FAIL
   popd >/dev/null
 }
 
