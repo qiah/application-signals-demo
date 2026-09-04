@@ -24,10 +24,6 @@ read -r -d '' POLICY <<JSON
  {"Sid":"SpansFromXray","Effect":"Allow","Principal":{"Service":"xray.amazonaws.com"},
   "Action":["logs:PutLogEvents","logs:CreateLogStream"],
   "Resource":"arn:aws:logs:${REGION}:${ACCOUNT}:log-group:aws/spans:*",
-  "Condition":{"StringEquals":{"aws:SourceAccount":"${ACCOUNT}"},"ArnEquals":{"aws:SourceArn":"arn:aws:xray:${REGION}:${ACCOUNT}:*"}}},
- {"Sid":"AppSignalsEmfFromXray","Effect":"Allow","Principal":{"Service":"xray.amazonaws.com"},
-  "Action":["logs:PutLogEvents","logs:CreateLogStream"],
-  "Resource":"arn:aws:logs:${REGION}:${ACCOUNT}:log-group:/aws/application-signals/data:*",
   "Condition":{"StringEquals":{"aws:SourceAccount":"${ACCOUNT}"},"ArnEquals":{"aws:SourceArn":"arn:aws:xray:${REGION}:${ACCOUNT}:*"}}}]}
 JSON
 aws logs put-resource-policy --policy-name "XRayToLogsIngestion-omni" --policy-document "$POLICY" --region "$REGION" >/dev/null 2>&1 \
