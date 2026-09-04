@@ -2,9 +2,12 @@
 This is a modified version of the [spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices) Spring Boot sample application.
 If your interest lies in exploring the broader aspects of the Spring Boot stack, we recommend visiting the original repository at [spring-petclinic-microservices](https://github.com/spring-petclinic/spring-petclinic-microservices).
 
-**This fork has all OpenTelemetry / ADOT instrumentation removed.** The application deploys and runs
-uninstrumented across every platform below, and serves as a clean base for adding new instrumentation.
-The sections below cover how to build and deploy the sample application on each platform.
+**This fork is instrumented with CloudWatch Omni (OpenTelemetry / ADOT), following the CloudWatch Omni
+instrumentation guide.** The PetClinic microservices export OTLP traces, logs, and metrics on every platform below (EC2, ECS, EKS, and Bedrock AgentCore), and the deploy scripts enable the prerequisites for you (X-Ray Transaction Search; the EC2 telemetry rule). Deploy to your own AWS account, generate traffic, and the services appear in the CloudWatch console. See **[How to verify your telemetry](#how-to-verify-your-telemetry)** for exactly what lands where.
+
+> This is a fork of `aws-observability/application-signals-demo` with the Application Signals / ADOT
+> instrumentation replaced by the CloudWatch Omni (OTel) path. The in-instance `git clone` in the EC2 and K8s
+> user-data points at this fork's `omni-demo` branch; if you fork it, update that URL/branch.
 
 # Disclaimer
 
@@ -109,6 +112,31 @@ export REGION='us-east-1'
 
 Please be aware that this sample application includes a publicly accessible Application Load Balancer (ALB), enabling easy interaction with the application. If you perceive this public ALB as a security risk, consider restricting access by employing [security groups](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-update-security-groups.html).
 
+
+# How to verify your telemetry
+
+Once a platform is deployed and receiving traffic, the CloudWatch Omni path creates these log groups
+automatically (nothing to pre-create). Use them to confirm telemetry is flowing:
+
+| Signal | Log group | Platforms |
+|---|---|---|
+| Traces (spans) | `aws/spans` | EC2, ECS, EKS, AgentCore |
+| Application Signals (derived RED metrics) | `/aws/application-signals/data` | all, via Transaction Search |
+| App logs over OTLP (EC2 / ECS) | `/aws/cwagent/otlp` | EC2, ECS |
+| App logs over OTLP (EKS) | `/aws/cwagent/<clusterName>/otlp` | EKS (cluster-scoped) |
+| Agent runtime logs + spans | `/aws/bedrock-agentcore/runtimes/<runtimeId>-DEFAULT` | AgentCore |
+
+
+For Bedrock AgentCore the agents emit telemetry only when invoked. The deployed traffic generator (an
+EventBridge-scheduled Lambda) invokes the primary agent runtime directly every minute, so spans flow
+continuously after deploy — the primary agent delegates to the nutrition agent, so both appear. To invoke a
+runtime yourself:
+
+```shell
+aws bedrock-agentcore invoke-agent-runtime --agent-runtime-arn <RUNTIME_ARN> \
+  --runtime-session-id $(uuidgen) --payload '{"prompt":"What are the clinic hours?"}' \
+  --content-type application/json --accept application/json /dev/stdout
+```
 
 # EC2 Demo
 The following instructions describe how to set up the pet clinic sample application on EC2 instances. You can run these steps in your personal AWS account to follow along (Not recommended for production usage).

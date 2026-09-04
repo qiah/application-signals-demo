@@ -14,8 +14,10 @@ def load_prompts():
 
 def lambda_handler(event, context):
     """
-    Traffic generator that invokes the Pet Clinic frontend agent endpoint with random queries.
-    Falls back to direct Primary Agent invocation if PET_CLINIC_URL is not set.
+    Traffic generator for the Pet Clinic agents.
+    Prefers a DIRECT Bedrock AgentCore runtime invocation whenever PRIMARY_AGENT_ARN is set — that is the path
+    that reliably produces agent spans/telemetry. Only when no agent ARN is available does it fall back to the
+    EKS frontend route (POST /api/agent/ask), which requires the gateway to be configured with the agent ARN.
     """
     
     pet_clinic_url = os.environ.get('PET_CLINIC_URL', '')
@@ -39,8 +41,8 @@ def lambda_handler(event, context):
         is_nutrition_query = random.random() <= 0.95
         queries.append(random.choice(prompts['nutrition-queries' if is_nutrition_query else 'non-nutrition-queries']))
     
-    # Fallback to direct agent invocation if PET_CLINIC_URL is not set
-    if not pet_clinic_url:
+    # Prefer direct runtime invocation when we have the agent ARN (reliably produces agent telemetry).
+    if primary_agent_arn:
         session = boto3.Session()
         credentials = session.get_credentials()
         
@@ -73,7 +75,7 @@ def lambda_handler(event, context):
                     'error': str(error)
                 })
     else:
-        # Use Pet Clinic URL if available
+        # Fallback: no agent ARN, drive the EKS frontend route instead.
         for query in queries:
             try:
                 url = f"{pet_clinic_url.rstrip('/')}/api/agent/ask"
